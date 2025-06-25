@@ -20,7 +20,7 @@ def generate_binomial_distribution_circuit(num_qubits: int, success_probability_
     if num_qubits <= 0:
         raise ValueError("Number of qubits must be positive.")
 
-    qc = QuantumCircuit(num_qubits, num_qubits) # Add classical bits for measurement
+    qc = QuantumCircuit(num_qubits) # Classical bits usually added by user if measuring.
 
     # Angle for Ry gate to achieve desired probability for |1>
     # P(|1>) = sin^2(theta/2) = success_probability_p
@@ -44,15 +44,14 @@ def generate_permutation_circuit_example(num_qubits: int, pattern: str) -> Quant
     Args:
         num_qubits: Number of qubits (2 or 3 for current examples).
         pattern:
-            - "SWAP_01" for 2 qubits: swaps |01> and |10> (achieved by SWAP gate).
-            - "CYCLE_3Q_001_010_100" for 3 qubits: attempts |001> -> |010> -> |100> -> |001>
-              (This is non-trivial with simple gates and might need decomposition or be illustrative)
-              For simplicity, a basic SWAP network example.
+            - "SWAP_01" for 2 qubits: applies a SWAP gate between qubit 0 and 1.
+            - "CYCLE_012" for 3 qubits: applies SWAP gates to achieve a cyclic permutation of qubit indices (q0->q1, q1->q2, q2->q0).
+              This results in a specific permutation of the basis states.
 
     Returns:
         A QuantumCircuit object.
     """
-    qc = QuantumCircuit(num_qubits, num_qubits)
+    qc = QuantumCircuit(num_qubits) # Classical bits are usually added by the user if measuring.
 
     if num_qubits == 2:
         if pattern == "SWAP_01": # This is just a SWAP gate

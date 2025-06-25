@@ -14,12 +14,18 @@ class HomeconnectConnector(PersistentOAuth2Connector):
         "enumber": None
     }
     # Cache and queue attributes
-    cached_appliances = None # Will store the list of appliances
-    cached_statuses = {}     # Dict mapping haId to {"status": <status_data>, "last_updated": <timestamp>}
-    cached_settings = {}     # Dict mapping haId to {"settings": <settings_data>, "last_updated": <timestamp>}
-    command_queue = []       # List of commands to execute when back online
+    cached_appliances = None # Stores {"data": [<appliance_dict>], "last_updated": timestamp}
+    cached_statuses = {}     # Dict mapping "haId_statusKey" to {"data": {<status_body>}, "last_updated": timestamp, "status": "live/pending_sync/etc."}
+    cached_settings = {}     # Dict mapping "haId_settingKey" to {"data": {<setting_body>}, "last_updated": timestamp, "status": "live/pending_sync/etc."}
+    command_queue = []       # List of command dicts to execute. Each dict includes:
+                             # {"type": str, "endpoint": str, "payload": dict, "ha_id": str,
+                             #  "timestamp": float, "retry_count": int (optional)}
+                             # Specific command types (set_setting, program_drink) may have additional keys like "setting_key".
+    failed_commands_queue = [] # List of command dicts that reached MAX_RETRIES. Includes original command + error info.
+
 
     CACHE_TTL = 300 # Time-to-live for cache in seconds (e.g., 5 minutes)
+    MAX_RETRIES = 3 # Max retry attempts for a queued command before moving to failed_commands_queue
 
     def __init__(self, *args, **kwargs):
         self.cached_appliances = None
@@ -32,19 +38,6 @@ class HomeconnectConnector(PersistentOAuth2Connector):
         # The _load_config_from_file in parent's __init__ calls our overridden load_config,
         # which now loads all HC specific data including cache and queue.
         # No need for _load_hc_specific_config_data or _initial_load_done_hc anymore.
-
-
-    def _load_hc_specific_config_data(self):
-        """Loads HC specific parts from the config file after parent load."""
-        # This is a bit tricky because parent's __init__ calls _load_config_from_file,
-        # which calls self.load_config. We want our extended load_config to run.
-        # The parent's load_config will call our overridden load_config.
-        # This method is to ensure that if load_config was called by parent before
-        # our attributes (like cached_appliances) were defined, we can try loading again
-        # or ensure they are initialized.
-        # For now, load_config override should handle initialization.
-        pass
-
 
     def get_machines(self):
         """
@@ -364,35 +357,47 @@ class HomeconnectConnector(PersistentOAuth2Connector):
     def process_command_queue(self):
         """
         Process any commands in the command_queue if online.
+        Iterates through queued commands, attempts to execute them,
+        handles retries for failures, and moves commands to failed_commands_queue
+        if they exceed MAX_RETRIES. Updates local caches for successfully
+        processed settings commands.
         """
         if not self.check_online_status() or not self.command_queue:
-            if not self.is_online and self.command_queue:
-                print("Offline, cannot process command queue.")
+            if not self.is_online and self.command_queue: # Specifically log if queue has items but we are offline
+                print("Offline, cannot process command queue at this time.")
             return {"processed_count": 0, "remaining_count": len(self.command_queue), "status": "offline_or_empty"}
 
         print(f"Processing command queue. {len(self.command_queue)} commands pending.")
         processed_count = 0
-        # Iterate over a copy of the queue for safe removal
+        # Iterate over a copy of the queue for safe removal during iteration
         pending_commands = list(self.command_queue)
-        new_queue = []
+        self.command_queue = [] # Clear current queue, will be repopulated with commands that need retry
+
         successful_commands_info = []
 
         for command_index, command in enumerate(pending_commands):
-            print(f"Attempting command: {command.get('type')} to {command.get('endpoint')}")
-            # Ensure we have fresh online status before each command
+            # Ensure command has a retry_count, default to 0 if not present (for older queued items)
+            command['retry_count'] = command.get('retry_count', 0)
+
+            print(f"Attempting command: {command.get('type')} to {command.get('endpoint')} (Attempt {command['retry_count'] + 1})")
+
+            # Ensure we have fresh online status before each command attempt
             if not self.check_online_status():
-                print("Became offline while processing queue. Stopping.")
-                new_queue.extend(pending_commands[command_index:]) # Add remaining unprocessed commands back
+                print("Became offline while processing queue. Stopping further processing.")
+                # Add this command and any subsequent commands back to the main queue
+                self.command_queue.extend(pending_commands[command_index:])
                 break
 
             status_code, response_body = -1, {}
             if command.get("type") == "set_setting" or command.get("type") == "program_drink":
                 status_code, response_body = super().put(command["endpoint"], command["payload"])
             else:
-                print(f"Unknown command type in queue: {command.get('type')}")
-                # Decide how to handle unknown: skip, move to error queue, etc.
-                # For now, we'll keep it in the queue to avoid data loss, but it won't be processed.
-                new_queue.append(command)
+                error_msg = f"Unknown command type in queue: {command.get('type')}. Moving to failed queue."
+                print(f"ERROR: {error_msg}")
+                command["error_reason"] = error_msg
+                command["last_failure_timestamp"] = time.time()
+                self.failed_commands_queue.append(command)
+                # Do not add to new_queue, effectively removing it from active processing
                 continue
 
             if status_code < 300:
