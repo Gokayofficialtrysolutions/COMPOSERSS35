@@ -133,6 +133,20 @@ combinatorial_circ_reg = [
         "generator": generate_combination_superposition_circuit,
         "args": {"num_qubits_n": 4, "num_to_select_k": 0}
     },
+    {
+        "id": "perm_custom_2q_0213",
+        "name": "2Q Permutation ([0,2,1,3])",
+        "description": "Maps |01> to |10> and |10> to |01>.",
+        "generator": generate_custom_permutation_circuit,
+        "args": {"num_qubits": 2, "permutation_list": [0, 2, 1, 3]}
+    },
+    {
+        "id": "perm_custom_3q_swap14",
+        "name": "3Q Permutation (Swap |001>,|100>)",
+        "description": "Swaps basis states |001> (1) and |100> (4).",
+        "generator": generate_custom_permutation_circuit,
+        "args": {"num_qubits": 3, "permutation_list": [0, 4, 2, 3, 1, 5, 6, 7]}
+    },
 ]
 
 if __name__ == '__main__':
@@ -265,3 +279,119 @@ if __name__ == '__main__':
     qc_comb_0 = generate_combination_superposition_circuit(3,0) # 3 choose 0 -> |000>
     print("\nCombinations N=3, k=0 Circuit:")
     print(qc_comb_0.draw(output='text'))
+
+def generate_custom_permutation_circuit(num_qubits: int, permutation_list: list[int]) -> QuantumCircuit:
+    """
+    Generates a circuit that applies a specified permutation to the computational basis states.
+    The permutation_list maps input basis state indices to output basis state indices.
+    E.g., for 2 qubits, permutation_list [0, 2, 1, 3] means:
+    |00> (idx 0) -> |00> (idx 0)
+    |01> (idx 1) -> |10> (idx 2)
+    |10> (idx 2) -> |01> (idx 1)
+    |11> (idx 3) -> |11> (idx 3)
+
+    Args:
+        num_qubits: Number of qubits.
+        permutation_list: A list of length 2**num_qubits, where permutation_list[i] is the
+                          output index for input basis state index i. Must be a valid permutation.
+
+    Returns:
+        A QuantumCircuit that implements the permutation (possibly using initialize).
+    """
+    if num_qubits <= 0:
+        raise ValueError("Number of qubits must be positive.")
+
+    dim = 2**num_qubits
+    if len(permutation_list) != dim:
+        raise ValueError(f"Permutation list length must be 2**num_qubits ({dim}), but got {len(permutation_list)}.")
+    if sorted(permutation_list) != list(range(dim)):
+        raise ValueError("Permutation list must contain all indices from 0 to 2**num_qubits - 1 exactly once.")
+
+    from qiskit.quantum_info import Statevector, Operator
+    from qiskit.circuit.library import Permutation as QiskitPermutationGate
+
+    # Create a permutation matrix
+    # P_ij = 1 if j is mapped to i, else 0.
+    # So, if state |j> maps to state |permutation_list[j]>, the matrix column j should have a 1 at row permutation_list[j].
+    # Or, using Qiskit's Permutation gate convention: circuit.permutation([0,2,1,3])
+    # This means qubit state index 0 maps to output index 0, input 1 to output 2, input 2 to output 1 etc.
+
+    qc = QuantumCircuit(num_qubits)
+
+    # Qiskit's Permutation gate is a good way to represent this if it's a permutation of basis states.
+    # The list provided to Qiskit's Permutation is the new order of the basis states.
+    # If our permutation_list[i] = j means input state i goes to output state j,
+    # then Qiskit's Permutation wants a list where the value at index j is i from the original state.
+    # This is the inverse of the permutation_list if permutation_list maps old_index -> new_index.
+    # Let's clarify: Qiskit's Permutation([p_0, p_1, ..., p_{N-1}]) acts as |j> -> |p_j>.
+    # So our permutation_list is directly what Qiskit's Permutation gate needs.
+
+    try:
+        # Attempt to use Qiskit's built-in Permutation gate, which can decompose for small N
+        # or act as a unitary for simulation.
+        permutation_gate = QiskitPermutationGate(num_qubits, permutation_list)
+        qc.append(permutation_gate, range(num_qubits))
+        qc.name = f"{num_qubits}Q Permutation"
+    except Exception as e:
+        # Fallback for very large permutations or if QiskitPermutationGate has issues
+        # This is more of a conceptual fallback as QiskitPermutationGate is quite robust for this.
+        print(f"Could not use QiskitPermutationGate directly ({e}), using qc.initialize as a fallback (simulator only).")
+
+        # Create the initial statevector |0...0>
+        initial_sv_coeffs = np.zeros(dim, dtype=complex)
+        initial_sv_coeffs[0] = 1
+
+        # Create the permuted statevector if we were to apply this to |0...0>
+        # This isn't what we want. We want a unitary that *performs* the permutation.
+        # The Operator class can take a permutation matrix.
+
+        # Construct permutation matrix P: P|in_idx> = |out_idx>
+        # P has P[out_idx, in_idx] = 1
+        perm_matrix = np.zeros((dim, dim), dtype=complex)
+        for in_idx, out_idx in enumerate(permutation_list):
+            perm_matrix[out_idx, in_idx] = 1
+
+        perm_op = Operator(perm_matrix)
+        qc.unitary(perm_op, range(num_qubits), label=f"{num_qubits}Q Custom Perm")
+
+    return qc
+
+
+if __name__ == '__main__':
+    # ... (previous tests remain the same) ...
+
+    print("\nRegistry:")
+    for entry in combinatorial_circ_reg:
+        print(f"- {entry['name']}: calls {entry['generator'].__name__} with {entry['args']}")
+
+    # Test new combination function
+    qc_comb_1 = generate_combination_superposition_circuit(3, 2) # 3 choose 2
+    print("\nCombinations N=3, k=2 Circuit:")
+    print(qc_comb_1.draw(output='text'))
+
+    qc_comb_2 = generate_combination_superposition_circuit(4, 1) # 4 choose 1
+    print("\nCombinations N=4, k=1 Circuit:")
+    print(qc_comb_2.draw(output='text'))
+
+    qc_comb_0 = generate_combination_superposition_circuit(3,0) # 3 choose 0 -> |000>
+    print("\nCombinations N=3, k=0 Circuit:")
+    print(qc_comb_0.draw(output='text'))
+
+    # Test custom permutation
+    # |00> -> |00> (0->0)
+    # |01> -> |10> (1->2)
+    # |10> -> |01> (2->1)
+    # |11> -> |11> (3->3)
+    perm_list_2q = [0, 2, 1, 3]
+    qc_perm_custom_2q = generate_custom_permutation_circuit(2, perm_list_2q)
+    print(f"\nCustom 2Q Permutation {perm_list_2q}:")
+    print(qc_perm_custom_2q.draw(output='text'))
+
+    # For 3 qubits, e.g., |001> (1) <-> |100> (4)
+    # 0->0, 1->4, 2->2, 3->3, 4->1, 5->5, 6->6, 7->7
+    perm_list_3q = [0, 4, 2, 3, 1, 5, 6, 7]
+    qc_perm_custom_3q = generate_custom_permutation_circuit(3, perm_list_3q)
+    print(f"\nCustom 3Q Permutation {perm_list_3q}:")
+    # Qiskit might decompose this into SWAPs or other gates if possible
+    # For text output, it might just show "permutation" or "unitary"
+    print(qc_perm_custom_3q.draw(output='text'))

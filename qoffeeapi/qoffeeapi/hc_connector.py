@@ -26,6 +26,8 @@ class HomeconnectConnector(PersistentOAuth2Connector):
         self.cached_statuses = {}
         self.cached_settings = {}
         self.command_queue = []
+        self.failed_commands_queue = [] # Initialize new queue
+        self.MAX_RETRIES = 3 # Define max retries
         super().__init__(*args, **kwargs)
         # The _load_config_from_file in parent's __init__ calls our overridden load_config,
         # which now loads all HC specific data including cache and queue.
@@ -118,6 +120,7 @@ class HomeconnectConnector(PersistentOAuth2Connector):
             "cached_statuses": self.cached_statuses,
             "cached_settings": self.cached_settings,
             "command_queue": self.command_queue,
+            "failed_commands_queue": self.failed_commands_queue, # Add to save
         }
         return self._save_config_to_file(config_data)
 
@@ -136,11 +139,12 @@ class HomeconnectConnector(PersistentOAuth2Connector):
         self.cached_statuses = {k: v for k, v in config.get("cached_statuses", {}).items() if isinstance(v, dict)}
         self.cached_settings = {k: v for k, v in config.get("cached_settings", {}).items() if isinstance(v, dict)}
         self.command_queue = config.get("command_queue", [])
+        self.failed_commands_queue = config.get("failed_commands_queue", []) # Add to load
 
         # Ensure basic structure if loaded data is None from an old config file
-        # Handled by defaults in get() now.
-        if self.cached_appliances is None: self.cached_appliances = None # Explicitly None if not in config
+        if self.cached_appliances is None: self.cached_appliances = None
         if self.command_queue is None: self.command_queue = []
+        if self.failed_commands_queue is None: self.failed_commands_queue = []
 
 
     def get_ha_status(self, ha_id, status_key):
@@ -424,13 +428,20 @@ class HomeconnectConnector(PersistentOAuth2Connector):
                 print(f"Command {command.get('type')} to {command.get('endpoint')} failed with {status_code}: {response_body}. Keeping in queue for now.")
                 # Implement retry logic or move to a 'failed_permanently' queue later if needed.
                 # For now, keep it and it will be retried next time.
-                command["last_attempt_failed"] = True
+                command["retry_count"] = command.get("retry_count", 0) + 1
+                command["last_failure_timestamp"] = time.time()
                 command["last_failure_status"] = status_code
                 command["last_failure_response"] = response_body
-                new_queue.append(command)
+
+                if command["retry_count"] >= self.MAX_RETRIES:
+                    print(f"Command {command.get('type')} to {command.get('endpoint')} reached max retries. Moving to failed queue.")
+                    self.failed_commands_queue.append(command)
+                else:
+                    print(f"Command {command.get('type')} to {command.get('endpoint')} failed (attempt {command['retry_count']}/{self.MAX_RETRIES}). Keeping in queue.")
+                    new_queue.append(command) # Keep in active queue for next retry
 
         self.command_queue = new_queue
-        self.save_config()
+        self.save_config() # This now saves command_queue and failed_commands_queue
 
         summary = {
             "processed_count": processed_count,
