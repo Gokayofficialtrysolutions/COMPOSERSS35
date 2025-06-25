@@ -10,33 +10,110 @@ class OrchestratorMachineStateHandler(IPythonHandler):
     @web.authenticated
     def get(self):
         connector = get_connector()
-        proxy(
-            self,
-            connector.get("/api/homeappliances/{}/status/BSH.Common.Status.OperationState".format(connector.machine["haId"]))
-        )
+        if not connector.machine or not connector.machine.get("haId"):
+            self.set_status(400)
+            self.finish({"error": "No machine selected or haId missing."})
+            return
+
+        ha_id = connector.machine["haId"]
+        status_key = "BSH.Common.Status.OperationState"
+
+        try:
+            data, source, last_updated = connector.get_ha_status(ha_id, status_key)
+
+            response_payload = {
+                "data": data, # data is already the response body or error dict from connector
+                "source": source,
+                "last_updated": last_updated,
+                "haId": ha_id,
+                "status_key": status_key
+            }
+
+            if isinstance(data, dict) and "error" in data:
+                if source in ["offline_no_cache", "cached_became_offline_no_cache"] or data.get("error") == "offline_no_cache":
+                    self.set_status(503) # Service Unavailable
+                else:
+                    self.set_status(400) # Bad request or other error from cache layer
+            # If source is "live", data should be the actual successful response body.
+            # RuntimeErrors from connector.get_ha_status cover live call failures.
+
+            self.finish(response_payload)
+
+        except RuntimeError as e: # This catches actual errors from live calls or critical internal issues
+            self.set_status(500)
+            self.finish({"error": str(e), "source": "runtime_error", "haId": ha_id, "status_key": status_key})
+        except Exception as e: # Catch any other unexpected errors
+            self.set_status(500)
+            self.finish({"error": f"An unexpected error occurred: {str(e)}", "source": "unexpected_error"})
 
 # get power state and turn on machine from the API
 class OrchestratorMachinePowerHandler(IPythonHandler):
     @web.authenticated
     def get(self):
         connector = get_connector()
-        proxy(
-            self,
-            connector.get("/api/homeappliances/{}/settings/BSH.Common.Setting.PowerState".format(connector.machine["haId"]))
-        )
+        if not connector.machine or not connector.machine.get("haId"):
+            self.set_status(400)
+            self.finish({"error": "No machine selected or haId missing."})
+            return
+
+        ha_id = connector.machine["haId"]
+        setting_key = "BSH.Common.Setting.PowerState"
+
+        try:
+            data, source, last_updated = connector.get_ha_setting(ha_id, setting_key)
+
+            response_payload = {
+                "data": data, # data is already the response body or error dict from connector
+                "source": source,
+                "last_updated": last_updated,
+                "haId": ha_id,
+                "setting_key": setting_key
+            }
+
+            if isinstance(data, dict) and "error" in data:
+                if source in ["offline_no_cache", "cached_became_offline_no_cache"] or data.get("error") == "offline_no_cache":
+                    self.set_status(503) # Service Unavailable
+                else:
+                    self.set_status(400) # Bad request or other error from cache layer
+
+            self.finish(response_payload)
+
+        except RuntimeError as e: # This catches actual errors from live calls or critical internal issues
+            self.set_status(500)
+            self.finish({"error": str(e), "source": "runtime_error", "haId": ha_id, "setting_key": setting_key})
+        except Exception as e:
+            self.set_status(500)
+            self.finish({"error": f"An unexpected error occurred: {str(e)}", "source": "unexpected_error"})
 
     @web.authenticated
-    def post(self):
+    def post(self): # This is to turn the machine ON
         connector = get_connector()
-        proxy(
-            self,
-            connector.put("/api/homeappliances/{}/settings/BSH.Common.Setting.PowerState".format(connector.machine["haId"]), {
-                "data": {
-                    "key": "BSH.Common.Setting.PowerState",
-                    "value": "BSH.Common.EnumType.PowerState.On"
-                }
-            })
-        )
+        if not connector.machine or not connector.machine.get("haId"):
+            self.set_status(400)
+            self.finish({"error": "No machine selected or haId missing."})
+            return
+
+        ha_id = connector.machine["haId"]
+        setting_key = "BSH.Common.Setting.PowerState"
+        payload = {
+            "data": {
+                "key": setting_key,
+                "value": "BSH.Common.EnumType.PowerState.On"
+            }
+        }
+
+        try:
+            status_code, response_body = connector.set_ha_setting(ha_id, setting_key, payload)
+
+            self.set_status(status_code)
+            self.finish(response_body) # response_body will indicate queued or live status
+
+        except RuntimeError as e: # Should not happen if set_ha_setting handles errors gracefully
+            self.set_status(500)
+            self.finish({"error": str(e), "source": "runtime_error", "haId": ha_id, "setting_key": setting_key})
+        except Exception as e:
+            self.set_status(500)
+            self.finish({"error": f"An unexpected error occurred: {str(e)}", "source": "unexpected_error"})
 
 # get/set the the machine using enumber
 class OrchestratorMachineHandler(IPythonHandler):
@@ -58,9 +135,24 @@ class OrchestratorAllMachinesHandler(IPythonHandler):
     @web.authenticated
     def get(self):
         connector = get_connector()
-        self.finish({
-            "machines": connector.get_machines()
-        })
+        try:
+            machines_data, source, last_updated = connector.get_machines()
+            response_payload = {
+                "machines": machines_data, # This is the list of appliance dicts
+                "source": source,
+                "last_updated": last_updated
+            }
+            if source == "offline_no_cache":
+                self.set_status(503) # Service Unavailable
+
+            self.finish(response_payload)
+        except RuntimeError as e:
+            self.set_status(500)
+            self.finish({"error": str(e), "source": "runtime_error"})
+        except Exception as e:
+            self.set_status(500)
+            self.finish({"error": f"An unexpected error occurred: {str(e)}", "source": "unexpected_error"})
+
 
 # send a request to the coffee machine to create a drink
 class OrchestratorDrinkRequestHandler(IPythonHandler):
@@ -78,12 +170,27 @@ class OrchestratorDrinkRequestHandler(IPythonHandler):
         }, drinkOptions.keys()))
 
         # send put request
-        proxy(
-            self,
-            connector.put("/api/homeappliances/{}/programs/active".format(connector.machine["haId"]), {
-                "data": {
-                    "key": drinkKey,
-                    "options": drinkOptionsList
-                }
-            })
-        )
+        program_payload = {
+            "data": {
+                "key": drinkKey,
+                "options": drinkOptionsList
+            }
+        }
+
+        ha_id = connector.machine["haId"]
+        if not ha_id:
+            self.set_status(400)
+            self.finish({"error": "No machine selected or haId missing."})
+            return
+
+        try:
+            status_code, response_body = connector.program_drink(ha_id, program_payload)
+            self.set_status(status_code)
+            self.finish(response_body) # response_body will indicate queued or live status
+
+        except RuntimeError as e: # Should not happen
+            self.set_status(500)
+            self.finish({"error": str(e), "source": "runtime_error", "haId": ha_id})
+        except Exception as e:
+            self.set_status(500)
+            self.finish({"error": f"An unexpected error occurred: {str(e)}", "source": "unexpected_error"})

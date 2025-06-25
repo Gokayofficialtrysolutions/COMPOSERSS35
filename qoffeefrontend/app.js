@@ -2,10 +2,10 @@ define([
     'base/js/namespace',
     'jquery',
     'require',
-    'https://cdn.jsdelivr.net/npm/lz-string@1.4.4/libs/lz-string.min.js',
-    'https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js',
+    requirejs.toUrl('./lib/lz-string.min.js'), // Local path
+    requirejs.toUrl('./lib/qrcode.min.js')     // Local path
 ], function(
-    jupyter, $, requirejs, lzs, qrc
+    jupyter, $, requirejs, LZString, QRCode // Ensure the variable names match what the libraries export
 ) {
 
     /** is app mode active */
@@ -163,14 +163,20 @@ define([
                     'X-XSRFToken': document.cookie.replace("_xsrf=", "")
                 }
             }).then(response => {
-                // if fail, alert and go to welcome
-                if(!response.ok) {
-                    alert("Could not activate coffee machine.");
-                    reject();
-                }
-                // if succeed to to success
-                else {
-                    resolve();
+                if (response.status === 202) { // Queued
+                    response.json().then(body => {
+                        alert(body.message || "Coffee machine activation command queued.");
+                        resolve({"status": "queued", "response": body});
+                    }).catch(() => {
+                        alert("Coffee machine activation command queued (could not parse server message).");
+                        resolve({"status": "queued"});
+                    });
+                } else if (!response.ok) {
+                    alert("Could not activate coffee machine. Status: " + response.status);
+                    reject({"status": "error", "http_status": response.status});
+                } else { // OK
+                    console.log("Coffee machine activated (or command sent successfully).");
+                    resolve({"status": "ok"});
                 }
             }, error => {
                 alert("Could not activate coffee machine.");
@@ -207,14 +213,31 @@ define([
                     options: drinkOptions
                 })
             }).then(response => {
-                // if fail, alert and go to welcome
-                if(!response.ok) {
-                    reject();
-                    alert("Could not get drink\n"+response.statusText);
-                }
-                // if succeed to to success
-                else {
-                    resolve();
+                if (response.status === 202) { // Queued
+                    return response.json().then(body => {
+                        alert(body.message || "Drink command queued.");
+                        // Resolve with a structure that Python response_handler can use
+                        resolve({ "status": "queued", "message": body.message, "details": body.details });
+                    }).catch(() => {
+                        alert("Drink command queued (could not parse server message).");
+                        resolve({ "status": "queued", "message": "Drink command queued (server message parse error)." });
+                    });
+                } else if (!response.ok) {
+                    // Try to get error message from backend if available
+                    return response.text().then(text => { // Use text() first as it might not be JSON
+                        try {
+                            const errorBody = JSON.parse(text);
+                            alert("Could not get drink: " + (errorBody.error || errorBody.message || response.statusText));
+                            reject({ "status": "error", "http_status": response.status, "message": (errorBody.error || errorBody.message || response.statusText), "body": errorBody });
+                        } catch (e) {
+                            alert("Could not get drink. Status: " + response.status + ". " + text);
+                            reject({ "status": "error", "http_status": response.status, "message": text });
+                        }
+                    });
+                } else { // OK (live success)
+                    console.log("Drink command sent successfully.");
+                    // Resolve with a structure that Python response_handler can use
+                    resolve({ "status": "ok" });
                 }
             }, error => {
                 reject(error);
@@ -252,6 +275,7 @@ define([
         $("#qrcode-container").append(`
             <a class="help-link" target="_blank" onclick="window.myCloseFullscreen()" href="http://qoffee-maker.org">Qoffee Maker<br/><i>http://qoffee-maker.org</i><span class="arrow">→</span><a/>
             <a class="help-link" target="_blank" onclick="window.myCloseFullscreen()" href="http://quantum-computing.ibm.com">IBM Quantum<br/><i>http://quantum-computing.ibm.com</i><span class="arrow">→</span><a/>
+            <p style="font-size: 0.8em; margin-top: 15px; text-align: center;"><i>Note: Accessing these links requires an internet connection.</i></p>
         `)
         $("#qrcode-container").addClass("active");
     }
@@ -261,24 +285,32 @@ define([
      * @function openQRCode
      * @param {string} url URL to encode into a QR Code
      * @param {string} text Text to show above the QR Code
+     * @param {string} additionalHtml Optional HTML content to append below the QR code and link
      */
-    function openQRCode(url, text="") {
+    function openQRCode(url, text="", additionalHtml="") {
         // clear previous qr code
-        $("#qrcode-container").empty();
-        $("#qrcode-container").append('<div id="qrcode"></div>');
+        const qrContainer = $("#qrcode-container");
+        qrContainer.empty();
+        qrContainer.append('<div id="qrcode"></div>'); // Add div for QRCode object
+
         // create qrcode
-        const qrcode = new QRCode(document.getElementById("qrcode"), {
+        new QRCode(document.getElementById("qrcode"), { // QRCode is now correctly capitalized
             text: url,
             width: 256,
             height: 256,
             colorDark : "#000000",
             colorLight : "#ffffff"
         });
-        $("#qrcode-container").addClass("active");
-        if(text != "") {
-            $("#qrcode-container").prepend('<p class="qrcode-text">'+text+'</p>')
+
+        if(text) { // Check if text is not empty or undefined
+            qrContainer.prepend('<p class="qrcode-text">'+text+'</p>');
         }
-        $("#qrcode-container").append('<a class="qrcode-link" href="'+url+'" target="_blank">Open</a>')
+        qrContainer.append('<a class="qrcode-link" href="'+url+'" target="_blank" rel="noopener noreferrer">Open Link</a>');
+
+        if (additionalHtml) {
+            qrContainer.append(additionalHtml);
+        }
+        qrContainer.addClass("active");
     }
 
     /**
@@ -288,16 +320,31 @@ define([
      */
     function openQRCodeIBMQ(circuitQasm) {
         // setup data to transfer
-        const data = {
+        const dataToCompress = { // Renamed to avoid conflict with global 'data' widget if any confusion
             title: 'Qoffee Maker - ' +(new Date()).toLocaleString(),
-            description: '',
+            description: 'Circuit exported from Qoffee Maker',
             qasm: circuitQasm
         }
         // encode data and add to URL
-        const qantumComposerComponent = encodeURIComponent(LZString.compressToEncodedURIComponent(JSON.stringify(data)));
-        const url = "https://quantum-computing.ibm.com/composer/files/new?initial="+qantumComposerComponent;
+        const quantumComposerComponent = encodeURIComponent(LZString.compressToEncodedURIComponent(JSON.stringify(dataToCompress)));
+        const url = "https://quantum-computing.ibm.com/composer/files/new?initial="+quantumComposerComponent;
+
+        // Prepare message for the QR code display
+        let messageText = "Scan to open in IBM Quantum Composer.";
+        // TODO: Check actual overall online status if possible. For now, assume it might be offline.
+        messageText += "<br><small><i>Note: Accessing IBM Quantum Composer requires an internet connection.</i></small>";
+
+        // Display QASM as text for copying, and a placeholder for where it could go in UI
+        const qasmDisplayHtml = `<div style="margin-top: 10px;">
+            <p><strong>Raw QASM:</strong></p>
+            <textarea rows="5" style="width: 100%; font-family: monospace; font-size: 0.8em;" readonly>${circuitQasm}</textarea>
+            <p><small>You can copy the QASM above if offline.</small></p>
+            </div>`;
+
+        console.log("QASM for IBM Quantum Composer:", circuitQasm); // For debugging / manual copy
+
         // show QR Code
-        openQRCode(url);
+        openQRCode(url, messageText, qasmDisplayHtml); // Pass additional HTML to display
     }
 
     //
