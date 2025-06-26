@@ -1,11 +1,7 @@
 import os
 from qoffeeapi.oauth2 import PersistentOAuth2Connector
 from urllib.parse import urljoin
-
-class HomeconnectConnector(PersistentOAuth2Connector):
-
-
-import time
+import time # Moved import time to the top
 
 class HomeconnectConnector(PersistentOAuth2Connector):
 
@@ -369,9 +365,12 @@ class HomeconnectConnector(PersistentOAuth2Connector):
 
         print(f"Processing command queue. {len(self.command_queue)} commands pending.")
         processed_count = 0
-        # Iterate over a copy of the queue for safe removal during iteration
+
+        # Take a snapshot of the current command_queue to iterate over.
+        # The main self.command_queue is cleared and will be repopulated only with
+        # commands that need to be retried or were not processed if connection drops mid-way.
         pending_commands = list(self.command_queue)
-        self.command_queue = [] # Clear current queue, will be repopulated with commands that need retry
+        self.command_queue = []
 
         successful_commands_info = []
 

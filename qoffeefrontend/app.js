@@ -150,7 +150,7 @@ define([
 
     /**
      * Call backend to activate the coffee machine i.e. to set the power state to on
-     * @function refreshAuth
+     * @function activateCoffeeMachine
      */
     function activateCoffeeMachine() {
         console.log("Activating coffee machine")
