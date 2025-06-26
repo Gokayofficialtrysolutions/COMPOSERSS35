@@ -1,6 +1,19 @@
+"""
+API handlers that orchestrate interactions with the Home Connect API via the
+HomeconnectConnector. These handlers are exposed as Jupyter server extensions
+and are responsible for:
+- Fetching machine status and settings.
+- Controlling machine power and programs (e.g., ordering drinks).
+- Managing the selection of the active coffee machine.
+- Providing status and management for offline command queues.
+
+They incorporate offline awareness, returning cached data or queueing commands
+as appropriate, and structure responses to inform the client about data source
+and command status.
+"""
 from notebook.base.handlers import IPythonHandler
 from qoffeeapi.hc_connector import get_connector
-from qoffeeapi.utils import proxy
+# from qoffeeapi.utils import proxy # No longer used in this file
 from tornado import web
 import dotenv
 dotenv.load_dotenv()
@@ -196,9 +209,29 @@ class OrchestratorMachineHandler(IPythonHandler):
     def post(self):
         body = self.get_json_body()
         connector = get_connector()
-        enumber = None if (body is None or "enumber" not in body) else body["enumber"]
-        connector.set_machine(enumber)
-        self.finish(connector.machine)
+
+        identifier_to_set = None
+        if body:
+            if "haId" in body and body["haId"]:
+                identifier_to_set = body["haId"]
+                print(f"Attempting to set machine by haId: {identifier_to_set}")
+            elif "enumber" in body and body["enumber"]:
+                identifier_to_set = body["enumber"]
+                print(f"Attempting to set machine by enumber: {identifier_to_set}")
+            else: # Body exists but no known identifier
+                 print("No haId or enumber provided in body, attempting to set to first available machine.")
+        else: # No body
+            print("No request body, attempting to set to first available machine.")
+
+        try:
+            connector.set_machine(identifier_to_set) # set_machine handles None identifier correctly
+            self.finish(connector.machine)
+        except RuntimeError as e:
+            self.set_status(400) # Or 404 if machine not found based on identifier
+            self.finish({"error": str(e)})
+        except Exception as e:
+            self.set_status(500)
+            self.finish({"error": f"An unexpected error occurred while setting machine: {str(e)}"})
 
 # get all machines associated to the current account
 class OrchestratorAllMachinesHandler(IPythonHandler):

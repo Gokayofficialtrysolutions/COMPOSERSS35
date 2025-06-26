@@ -52,7 +52,8 @@ class OAuth2Connector:
         try:
             # Use a lightweight HEAD request if allowed, otherwise GET.
             # Ensure a timeout to prevent long hangs when offline.
-            response = requests.head(self.api_base_url, timeout=self.ONLINE_CHECK_TIMEOUT, verify=False) # verify=False for consistency with existing code
+            # verify=False: Consistent with existing code. For production, consider implications or ensure proper CA certs.
+            response = requests.head(self.api_base_url, timeout=self.ONLINE_CHECK_TIMEOUT, verify=False)
             # Consider status codes that indicate online (e.g., 200-299, 404 might also mean server is up)
             self.is_online = response.status_code < 500 # Basic check, server is reachable
         except requests.exceptions.RequestException:

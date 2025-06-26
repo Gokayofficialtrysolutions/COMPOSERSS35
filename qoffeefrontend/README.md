@@ -10,22 +10,46 @@ To activate the application, click on the rocket in the toolbar (or programatica
 
 ## QR Codes
 
-To present a QR Code in an overlay, use `window.openQRCode(<url>, text="")`. You can also specify a text which is displayed above the QR Code.
+The frontend provides utilities for displaying QR codes:
 
-To generate a QR Code that points to IBM Quantum Composer, use `window.openQRCodeIBMQ(<circuit qasm code>)`. The function will compress the QASM code of the circuit and build a suitable URL.
+- **`window.openQRCode(<url>, text="", additionalHtml="")`**: Displays a QR code for the given URL in an overlay.
+    - An optional `text` can be shown above the QR code.
+    - Optional `additionalHtml` can be appended below the QR code (e.g., for raw QASM display).
+    - The `qrcode.min.js` library used for this is now bundled locally, so QR codes can be generated even when offline.
 
-## Coffee Machine
+- **`window.openQRCodeIBMQ(<circuit qasm code>)`**: Specifically for exporting circuits to IBM Quantum Composer.
+    - It compresses the QASM (using the locally bundled `lz-string.min.js`) and constructs the URL.
+    - The QR code overlay will include a note that accessing the IBM Quantum Composer website requires an internet connection.
+    - It also displays the raw QASM text in a textarea for easy copying if offline.
 
-The following functions are called from Python but are implemented in JavaScript because the authorization against the Jupyter API is much easier in JavaScript (we can just reuse the token stored in the cookie).
+## Global Status Bar
+
+A global status bar is added at the bottom of the screen. It provides:
+- Basic browser online/offline network status indication (via `navigator.onLine`).
+- Counts of currently queued Home Connect commands and persistently failed commands (polled from `/api/hc/queue-status`).
+- Temporary messages for actions like commands being queued or successfully sent.
+
+## Coffee Machine Interaction & Offline Support
+
+JavaScript functions interface with the backend `qoffeeapi` for Home Connect operations. These now support offline capabilities:
 
 ### Refreshing Authorization to HomeConnect API 
 
-To manually refresh the access token for the HomeConnect API (must be done every 24h), use `window.refreshAuth()` or click on _Refresh Auth_ on the bottom right. If an authentication error occurs, this will redirect you to the login page. If nothing happens, everything is fine.
+- **`window.refreshAuth()`**: Manually refreshes the Home Connect API access token. This requires an online connection. If authentication fails, it redirects to the login page. The button for this is on the bottom right.
 
 ### Activate Coffee Machine
 
-To activate the coffee machine (i.e. switch from Standby to On) use `window.activateCoffeeMachine()`.
+- **`window.activateCoffeeMachine()`**: Sends a command to turn the coffee machine on.
+    - If online, the command is sent directly.
+    - If offline, the command is queued by the backend. A JavaScript `alert()` and a message in the global status bar will notify the user.
 
 ### Request a drink from the Coffee Machine
 
-To request a drink from the coffee machine use `window.requestDrink(<programm key>, <map of programm options>)`. The available programs are stored in the Jupyter Notebook.
+- **`window.requestDrink(<programm key>, <map of programm options>)`**: Sends a command to make a drink.
+    - If online, the command is sent directly.
+    - If offline, the command is queued. A JavaScript `alert()` and a message in the global status bar will notify the user.
+    - The Python callback for this function receives a status indicating if the command was 'ok' (live) or 'queued'.
+
+## Help Display
+
+- **`window.openHelp()`**: Displays links to external project and IBM Quantum pages. The UI now includes a note that accessing these links requires an internet connection.

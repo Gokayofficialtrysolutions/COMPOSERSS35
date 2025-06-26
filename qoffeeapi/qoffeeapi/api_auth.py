@@ -1,3 +1,9 @@
+"""
+API handlers for the Home Connect OAuth2 authentication flow.
+These handlers manage redirects to Home Connect for login,
+handle the callback after successful authentication, and provide
+an endpoint to refresh access tokens.
+"""
 import os
 from qoffeeapi.hc_connector import get_connector
 from notebook.base.handlers import IPythonHandler
@@ -19,10 +25,12 @@ class HomeconnectCallbackHandler(IPythonHandler):
         req_access_token_res = connector.request_access_token(authorization_code)
         if os.getenv("DEVICE_HA_ID"):
             # set the current machine to the machine with the given HA ID
+            # Note: connector.set_machine() might use cached appliance data if offline.
             print("Setting machine to " + os.getenv("DEVICE_HA_ID"))
             connector.set_machine(os.getenv("DEVICE_HA_ID"))
         else:
             # set the current machine to the first available machine associated with the account
+            # Note: connector.set_machine() might use cached appliance data if offline.
             connector.set_machine()
         proxy(self, req_access_token_res)
 

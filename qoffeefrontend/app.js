@@ -485,9 +485,19 @@ define([
     // Initial check
     // updateOnlineStatus(); // Called now in load_ipython_extension
 
-    let queueStatusPollerInterval = null;
-    const POLLING_INTERVAL = 30000; // 30 seconds
+    // --- Global Status Bar & Queue Polling ---
+    // The qoffee-global-status-bar provides users with feedback on network status,
+    // queued commands, and other important application states.
+    // It's updated by direct calls to updateGlobalStatus() or via the queue status poller.
 
+    let queueStatusPollerInterval = null; // Interval ID for the poller
+    const POLLING_INTERVAL = 30000; // Poll for queue status every 30 seconds
+
+    /**
+     * Fetches the Home Connect queue status from the backend API
+     * and updates the global status bar accordingly.
+     * Only polls if navigator.onLine is true.
+     */
     function fetchAndUpdateQueueStatus() {
         if (!navigator.onLine) {
             // If browser thinks it's offline, no point in polling our backend for this.
