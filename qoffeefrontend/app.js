@@ -165,17 +165,24 @@ define([
             }).then(response => {
                 if (response.status === 202) { // Queued
                     response.json().then(body => {
-                        alert(body.message || "Coffee machine activation command queued.");
+                        const msg = body.message || "Coffee machine activation command queued.";
+                        alert(msg);
+                        updateGlobalStatus(msg, 'info', 5000); // Show for 5 seconds
                         resolve({"status": "queued", "response": body});
                     }).catch(() => {
-                        alert("Coffee machine activation command queued (could not parse server message).");
+                        const msg = "Coffee machine activation command queued (could not parse server message).";
+                        alert(msg);
+                        updateGlobalStatus(msg, 'warning', 5000);
                         resolve({"status": "queued"});
                     });
                 } else if (!response.ok) {
-                    alert("Could not activate coffee machine. Status: " + response.status);
+                    const errorMsg = "Could not activate coffee machine. Status: " + response.status;
+                    alert(errorMsg);
+                    updateGlobalStatus(errorMsg, 'error', 5000);
                     reject({"status": "error", "http_status": response.status});
                 } else { // OK
                     console.log("Coffee machine activated (or command sent successfully).");
+                    updateGlobalStatus("Machine activated!", 'info', 3000);
                     resolve({"status": "ok"});
                 }
             }, error => {
@@ -215,27 +222,37 @@ define([
             }).then(response => {
                 if (response.status === 202) { // Queued
                     return response.json().then(body => {
-                        alert(body.message || "Drink command queued.");
+                        const msg = body.message || "Drink command queued.";
+                        alert(msg);
+                        updateGlobalStatus(msg, 'info', 5000);
                         // Resolve with a structure that Python response_handler can use
                         resolve({ "status": "queued", "message": body.message, "details": body.details });
                     }).catch(() => {
-                        alert("Drink command queued (could not parse server message).");
+                        const msg = "Drink command queued (could not parse server message).";
+                        alert(msg);
+                        updateGlobalStatus(msg, 'warning', 5000);
                         resolve({ "status": "queued", "message": "Drink command queued (server message parse error)." });
                     });
                 } else if (!response.ok) {
                     // Try to get error message from backend if available
                     return response.text().then(text => { // Use text() first as it might not be JSON
+                        let errorMsgDisplayed = "Could not get drink.";
                         try {
                             const errorBody = JSON.parse(text);
-                            alert("Could not get drink: " + (errorBody.error || errorBody.message || response.statusText));
+                            errorMsgDisplayed = "Could not get drink: " + (errorBody.error || errorBody.message || response.statusText);
+                            alert(errorMsgDisplayed);
                             reject({ "status": "error", "http_status": response.status, "message": (errorBody.error || errorBody.message || response.statusText), "body": errorBody });
                         } catch (e) {
-                            alert("Could not get drink. Status: " + response.status + ". " + text);
+                            errorMsgDisplayed = "Could not get drink. Status: " + response.status + ". " + text;
+                            alert(errorMsgDisplayed);
                             reject({ "status": "error", "http_status": response.status, "message": text });
                         }
+                        updateGlobalStatus(errorMsgDisplayed, 'error', 5000);
                     });
                 } else { // OK (live success)
-                    console.log("Drink command sent successfully.");
+                    const successMsg = "Drink command sent successfully!";
+                    console.log(successMsg);
+                    updateGlobalStatus(successMsg, 'info', 3000);
                     // Resolve with a structure that Python response_handler can use
                     resolve({ "status": "ok" });
                 }
@@ -426,8 +443,46 @@ define([
         })
         $("#qrcode-container").on("click", event => {
             $("#qrcode-container").removeClass("active");
-        })
+        });
+
+        // Add a global status bar
+        $('body').append('<div id="qoffee-global-status-bar" style="position: fixed; bottom: 0; left: 0; width: 100%; background-color: #333; color: white; padding: 5px 10px; font-size: 0.9em; z-index: 10000; text-align: center; display: none;">Qoffee Status</div>');
+        // Initial online status check for the bar
+        updateOnlineStatus();
     }
+
+    // Helper function to update the global status bar
+    function updateGlobalStatus(message, type = 'info', duration = 0) {
+        const statusBar = $('#qoffee-global-status-bar');
+        if (!statusBar.length) return;
+
+        statusBar.text(message).show();
+        statusBar.css('background-color', type === 'error' ? '#c00' : type === 'warning' ? '#f0ad4e' : '#337ab7'); // Simple color coding
+
+        if (duration > 0) {
+            setTimeout(() => {
+                statusBar.hide();
+            }, duration);
+        }
+        // If duration is 0, message stays until changed or hidden explicitly
+    }
+    // Expose to window if needed by other parts or for debugging, otherwise keep local.
+    window.updateQoffeeGlobalStatus = updateGlobalStatus; // Exposing for potential external calls or debug
+
+    // Basic online/offline detection for the global status bar
+    function updateOnlineStatus() {
+        if (navigator.onLine) {
+            updateGlobalStatus("Network: Online", 'info', 4000);
+        } else {
+            updateGlobalStatus("Network: Offline", 'warning'); // Keep offline message visible
+        }
+    }
+
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    // Initial check
+    // updateOnlineStatus(); // Call it once on load within load_ipython_extension
+
 
     return {
         load_ipython_extension: load_ipython_extension
