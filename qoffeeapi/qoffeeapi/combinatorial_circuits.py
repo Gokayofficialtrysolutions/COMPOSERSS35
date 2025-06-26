@@ -63,11 +63,35 @@ def generate_permutation_circuit_example(num_qubits: int, pattern: str) -> Quant
         if pattern == "CYCLE_012": # Swaps q0->q1, q1->q2, q2->q0
             qc.swap(1, 2) # q0,q2,q1
             qc.swap(0, 1) # q2,q0,q1
-            qc.name = "3Q Cycle (0->1->2)"
+            qc.name = "3Q Cycle (q0->q1->q2)"
+        elif pattern == "BIT_REVERSAL_3Q":
+            # For 3 qubits, bit reversal is |abc> -> |cba>
+            # This means:
+            # |000> (0) -> |000> (0)
+            # |001> (1) -> |100> (4)
+            # |010> (2) -> |010> (2)
+            # |011> (3) -> |110> (6)
+            # |100> (4) -> |001> (1)
+            # |101> (5) -> |101> (5)
+            # |110> (6) -> |011> (3)
+            # |111> (7) -> |111> (7)
+            # This is achieved by SWAP(0,2)
+            qc.swap(0, 2)
+            qc.name = "3Q Bit Reversal"
         else:
             raise ValueError(f"Unknown 3-qubit pattern: {pattern}")
+    elif num_qubits == 4: # Adding a 4-qubit example
+        if pattern == "PERFECT_SHUFFLE_4Q": # Interleaves top 2 qubits with bottom 2: q0,q1,q2,q3 -> q0,q2,q1,q3
+            qc.swap(1,2)
+            qc.name = "4Q Perfect Shuffle (q1<->q2)"
+        elif pattern == "BIT_REVERSAL_4Q": # q0<->q3, q1<->q2
+            qc.swap(0,3)
+            qc.swap(1,2)
+            qc.name = "4Q Bit Reversal"
+        else:
+            raise ValueError(f"Unknown 4-qubit pattern: {pattern}")
     else:
-        raise ValueError(f"Permutation examples only implemented for 2 or 3 qubits currently, got {num_qubits}.")
+        raise ValueError(f"Permutation examples by pattern only implemented for 2, 3 or 4 qubits currently, got {num_qubits}.")
 
     return qc
 
@@ -145,6 +169,49 @@ combinatorial_circ_reg = [
         "description": "Swaps basis states |001> (1) and |100> (4).",
         "generator": generate_custom_permutation_circuit,
         "args": {"num_qubits": 3, "permutation_list": [0, 4, 2, 3, 1, 5, 6, 7]}
+    },
+    # --- More examples ---
+    {
+        "id": "binomial_n2_p0.75",
+        "name": "Binomial (N=2, p=0.75)",
+        "description": "2 qubits, each with 75% chance of being |1>.",
+        "generator": generate_binomial_distribution_circuit,
+        "args": {"num_qubits": 2, "success_probability_p": 0.75}
+    },
+    {
+        "id": "comb_n4_k2",
+        "name": "Combinations (N=4, k=2)",
+        "description": "Superposition of states choosing 2 of 4 items.",
+        "generator": generate_combination_superposition_circuit,
+        "args": {"num_qubits_n": 4, "num_to_select_k": 2}
+    },
+    {
+        "id": "perm_3q_reverse", # Example of a bit-reversal like permutation for 3 qubits
+        "name": "3Q Permutation (Reverse Order)",
+        "description": "Reverses order of basis states (e.g., |000>->|111>, |001>->|110>).",
+        "generator": generate_custom_permutation_circuit,
+        "args": {"num_qubits": 3, "permutation_list": [7,6,5,4,3,2,1,0]} # Example: |0> maps to |7>, |1> to |6> etc.
+    },
+    {
+        "id": "perm_example_3q_bit_reversal",
+        "name": "3Q Permutation (Bit Reversal via SWAPs)",
+        "description": "Reverses qubit order (q0 <-> q2), e.g. |100> becomes |001>.",
+        "generator": generate_permutation_circuit_example,
+        "args": {"num_qubits": 3, "pattern": "BIT_REVERSAL_3Q"}
+    },
+    {
+        "id": "perm_example_4q_perfect_shuffle",
+        "name": "4Q Permutation (Perfect Shuffle q1<->q2)",
+        "description": "Interleaves qubits: q0,q1,q2,q3 -> q0,q2,q1,q3.",
+        "generator": generate_permutation_circuit_example,
+        "args": {"num_qubits": 4, "pattern": "PERFECT_SHUFFLE_4Q"}
+    },
+    {
+        "id": "perm_example_4q_bit_reversal",
+        "name": "4Q Permutation (Bit Reversal via SWAPs)",
+        "description": "Reverses qubit order (q0<->q3, q1<->q2).",
+        "generator": generate_permutation_circuit_example,
+        "args": {"num_qubits": 4, "pattern": "BIT_REVERSAL_4Q"}
     },
 ]
 
