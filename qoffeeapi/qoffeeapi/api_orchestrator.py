@@ -128,6 +128,18 @@ class OrchestratorHCDeleteFailedCommandHandler(IPythonHandler):
             self.set_status(500)
             self.finish({"error": f"An unexpected error occurred: {str(e)}"})
 
+# Reset Home Connect offline data (caches and queues)
+class OrchestratorHCResetOfflineDataHandler(IPythonHandler):
+    @web.authenticated # Should be authenticated as it's a modifying action
+    def post(self): # Using POST as it's an action that changes server-side state (the .user/oauth-token.json file)
+        connector = get_connector()
+        try:
+            result = connector.reset_offline_data()
+            self.finish(result)
+        except Exception as e:
+            self.set_status(500)
+            self.finish({"error": f"An unexpected error occurred while resetting offline data: {str(e)}"})
+
 # System Health Check
 class OrchestratorHealthCheckHandler(IPythonHandler):
     def get(self):

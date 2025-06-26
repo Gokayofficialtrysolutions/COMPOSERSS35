@@ -1,6 +1,8 @@
 # appwidgets
 
-This library implements custom Ipython Widgets to ease the development of web applications with Jupyter Notebooks.
+This library implements custom Ipython Widgets (like `ReactiveHtmlWidget`, `AppBox`, `JsPyWidget`) designed to ease the development of web-application-like experiences within Jupyter Notebooks. It is used as a foundational component for the [Qoffee-Maker project](../README.md).
+
+For details on the overall Qoffee-Maker project, see the main project [README.md](../README.md). For technical architecture and developer information, refer to the [DEVELOPER_GUIDE.md](../DEVELOPER_GUIDE.md).
 
 ## Installation
 

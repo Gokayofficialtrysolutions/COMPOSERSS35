@@ -527,6 +527,20 @@ class HomeconnectConnector(PersistentOAuth2Connector):
             print(f"Invalid command index for delete: {command_index}")
             return False
 
+    def reset_offline_data(self):
+        """
+        Resets cached data and command queues. Does NOT clear auth tokens or selected machine.
+        """
+        print("Resetting offline data: caches and command queues...")
+        self.cached_appliances = None
+        self.cached_statuses = {}
+        self.cached_settings = {}
+        self.command_queue = []
+        self.failed_commands_queue = []
+        self.save_config() # Persist the cleared state (keeps auth and machine)
+        print("Offline data reset complete.")
+        return {"message": "Offline data (caches and queues) reset successfully."}
+
 
 # singleton
 _HOMECONNECT_CONNECTOR = None

@@ -7,7 +7,7 @@ from qoffeeapi.api_orchestrator import (
     OrchestratorMachineStateHandler, OrchestratorMachineHandler,
     OrchestratorMachinePowerHandler, OrchestratorHCQueueStatusHandler,
     OrchestratorHCRetryFailedCommandHandler, OrchestratorHCDeleteFailedCommandHandler,
-    OrchestratorHealthCheckHandler
+    OrchestratorHealthCheckHandler, OrchestratorHCResetOfflineDataHandler # Added import
 )
 
 def load_jupyter_server_extension(nb_server_app):
@@ -53,5 +53,7 @@ def load_jupyter_server_extension(nb_server_app):
     web_app.add_handlers(host_pattern, [(route_pattern, OrchestratorHCRetryFailedCommandHandler)])
     route_pattern = url_path_join(web_app.settings['base_url'], '/api/hc/delete-failed-command')
     web_app.add_handlers(host_pattern, [(route_pattern, OrchestratorHCDeleteFailedCommandHandler)])
+    route_pattern = url_path_join(web_app.settings['base_url'], '/api/hc/reset-offline-data') # New route
+    web_app.add_handlers(host_pattern, [(route_pattern, OrchestratorHCResetOfflineDataHandler)]) # New handler
     route_pattern = url_path_join(web_app.settings['base_url'], '/api/health')
     web_app.add_handlers(host_pattern, [(route_pattern, OrchestratorHealthCheckHandler)])

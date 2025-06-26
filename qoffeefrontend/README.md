@@ -1,6 +1,8 @@
 # Qoffeefrontend
 
-This is a Jupyter Notebook Extension which bundles JavaScript functions and CSS Code required for the Qoffee functionality and app experience.
+This is a Jupyter Notebook Extension which bundles JavaScript functions (`app.js`) and CSS Code (`app.css`) required for the Qoffee-Maker application's frontend interactivity and appearance within the Jupyter Notebook.
+
+For overall project setup, architecture, and manual UI configuration in `qoffee.ipynb`, please refer to the main project [README.md](../README.md) and the [DEVELOPER_GUIDE.md](../DEVELOPER_GUIDE.md).
 
 ## App Mode
 

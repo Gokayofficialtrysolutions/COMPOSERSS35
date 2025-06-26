@@ -1,6 +1,8 @@
 # Qoffeeapi
 
-This Python package is intended to extend the Jupyter Notebook API to communicate with the HomeConnect API. The endpoints mentioned below are available on base URL of the Jupyter Server.
+This Python package extends the Jupyter Notebook API to communicate with the HomeConnect API and provide other backend functionalities for the Qoffee-Maker application. The endpoints mentioned below are available on the base URL of the Jupyter Server.
+
+For overall project setup, architecture, and manual UI configuration in `qoffee.ipynb`, please refer to the main project [README.md](../README.md) and the [DEVELOPER_GUIDE.md](../DEVELOPER_GUIDE.md).
 
 ## Installation
 

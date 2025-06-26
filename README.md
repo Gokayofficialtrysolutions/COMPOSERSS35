@@ -172,6 +172,11 @@ When setting up and running the Qoffee-Maker application, please be mindful of t
 
 By being aware of these points, you can use the Qoffee-Maker more securely.
 
+## For Developers and Advanced Users
+
+*   **Manual UI Setup:** To enable the full user interface for recently added features like advanced offline feedback, parameterized combinatorial circuits, and educational content display, please refer to the [MANUAL_QOFFEE_IPYNB_SETUP.md](MANUAL_QOFFEE_IPYNB_SETUP.md) guide.
+*   **Developer Guide:** For a deeper technical overview of the architecture, backend APIs, offline mechanisms, combinatorial circuit generation, CLI tool, and other advanced topics, please see the [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md).
+
 ## Installation on RasQberry (draft):
 
 Installation and startup of Qoffee-Maker has been fully integrated to the RasQberry automated setup. (Currently in branch "dev8", but will be merged to master soon.)
