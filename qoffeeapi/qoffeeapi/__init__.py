@@ -2,7 +2,13 @@ from requests.api import get
 from notebook.utils import url_path_join
 from qoffeeapi.hc_connector import get_connector
 from qoffeeapi.api_auth import HomeconnectLoginHandler, HomeconnectCallbackHandler, HomeconnectRefreshHandler
-from qoffeeapi.api_orchestrator import OrchestratorAllMachinesHandler, OrchestratorDrinkRequestHandler, OrchestratorMachineStateHandler, OrchestratorMachineHandler, OrchestratorMachinePowerHandler
+from qoffeeapi.api_orchestrator import (
+    OrchestratorAllMachinesHandler, OrchestratorDrinkRequestHandler,
+    OrchestratorMachineStateHandler, OrchestratorMachineHandler,
+    OrchestratorMachinePowerHandler, OrchestratorHCQueueStatusHandler,
+    OrchestratorHCRetryFailedCommandHandler, OrchestratorHCDeleteFailedCommandHandler,
+    OrchestratorHealthCheckHandler
+)
 
 def load_jupyter_server_extension(nb_server_app):
     """
@@ -40,6 +46,12 @@ def load_jupyter_server_extension(nb_server_app):
     route_pattern = url_path_join(web_app.settings['base_url'], '/drink')
     web_app.add_handlers(host_pattern, [(route_pattern, OrchestratorDrinkRequestHandler)])
     
-
-
-
+    ### Queue Management and Health
+    route_pattern = url_path_join(web_app.settings['base_url'], '/api/hc/queue-status')
+    web_app.add_handlers(host_pattern, [(route_pattern, OrchestratorHCQueueStatusHandler)])
+    route_pattern = url_path_join(web_app.settings['base_url'], '/api/hc/retry-failed-command')
+    web_app.add_handlers(host_pattern, [(route_pattern, OrchestratorHCRetryFailedCommandHandler)])
+    route_pattern = url_path_join(web_app.settings['base_url'], '/api/hc/delete-failed-command')
+    web_app.add_handlers(host_pattern, [(route_pattern, OrchestratorHCDeleteFailedCommandHandler)])
+    route_pattern = url_path_join(web_app.settings['base_url'], '/api/health')
+    web_app.add_handlers(host_pattern, [(route_pattern, OrchestratorHealthCheckHandler)])

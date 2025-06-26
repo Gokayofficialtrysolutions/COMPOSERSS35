@@ -48,3 +48,19 @@ These endpoints help manage the offline command queue for Home Connect operation
   Example request body: `{"command_index": 0}` (where 0 is the index from the `failed_commands_summary` list).
 - `🔑 POST /api/hc/delete-failed-command`: Removes a command from the failed queue.
   Example request body: `{"command_index": 0}`
+
+### System Health
+
+- `GET /api/health`: Provides a health check of the QoffeeMaker system, including status of Home Connect API connectivity, IBMQ configuration, local storage, and command queue summaries. This endpoint does not require authentication.
+  Example response snippet:
+  ```json
+  {
+    "overall_status": "OK",
+    "services": {
+      "home_connect_api": {"status": "AUTHENTICATED", ...},
+      "ibmq": {"status": "API_KEY_SET", ...},
+      "local_storage": {"status": "OK", ...}
+    },
+    "queues": {"active_commands": 0, "failed_commands": 0, ...}
+  }
+  ```

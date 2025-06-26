@@ -14,8 +14,15 @@ DEFAULT_BASE_URL = "http://localhost:8887"
 # This is a simplistic way to handle XSRF for a CLI; proper session management is more complex.
 XSRF_TOKEN_FILE = ".qoffee_cli_xsrf_token"
 
-def get_base_url():
-    """Gets base URL from environment variable QOFFEE_BASE_URL or uses default."""
+def get_base_url(args_base_url=None):
+    """
+    Gets base URL in order of precedence:
+    1. Command-line argument (--base-url)
+    2. Environment variable QOFFEE_BASE_URL
+    3. DEFAULT_BASE_URL
+    """
+    if args_base_url and args_base_url != DEFAULT_BASE_URL: # If CLI arg is passed and is not the default itself
+        return args_base_url
     return os.getenv("QOFFEE_BASE_URL", DEFAULT_BASE_URL)
 
 def get_xsrf_token():
@@ -45,7 +52,7 @@ def handle_response(response):
 
 def get_queue_status(args):
     """Fetches and displays the Home Connect queue status."""
-    base_url = get_base_url()
+    base_url = get_base_url(args.base_url)
     url = urljoin(base_url, "/api/hc/queue-status")
     print(f"Fetching queue status from {url}...")
     try:
@@ -56,7 +63,7 @@ def get_queue_status(args):
 
 def retry_failed_command(args):
     """Retries a failed Home Connect command."""
-    base_url = get_base_url()
+    base_url = get_base_url(args.base_url)
     xsrf_token = get_xsrf_token()
     if not xsrf_token and not args.ignore_xsrf: # only proceed if token exists or user forces
         print("XSRF token needed for POST. Aborting.")
@@ -79,7 +86,7 @@ def retry_failed_command(args):
 
 def delete_failed_command(args):
     """Deletes a failed Home Connect command."""
-    base_url = get_base_url()
+    base_url = get_base_url(args.base_url)
     xsrf_token = get_xsrf_token()
     if not xsrf_token and not args.ignore_xsrf:
         print("XSRF token needed for POST. Aborting.")
@@ -100,9 +107,20 @@ def delete_failed_command(args):
 
 def list_machines(args):
     """Lists Home Connect connected coffee machines."""
-    base_url = get_base_url()
+    base_url = get_base_url(args.base_url)
     url = urljoin(base_url, "/machines")
     print(f"Fetching machine list from {url}...")
+    try:
+        response = requests.get(url, timeout=10)
+        handle_response(response)
+    except requests.exceptions.RequestException as e:
+        print(f"Error connecting to QoffeeMaker API: {e}")
+
+def get_health_status(args):
+    """Fetches and displays the system health status."""
+    base_url = get_base_url(args.base_url)
+    url = urljoin(base_url, "/api/health")
+    print(f"Fetching system health from {url}...")
     try:
         response = requests.get(url, timeout=10)
         handle_response(response)
@@ -137,11 +155,14 @@ def main():
     machines_parser = subparsers.add_parser("list-machines", help="List connected Home Connect coffee machines.")
     machines_parser.set_defaults(func=list_machines)
 
+    # Health check command
+    health_parser = subparsers.add_parser("health", help="Get system health check status.")
+    health_parser.set_defaults(func=get_health_status)
+
     args = parser.parse_args()
 
-    # Override DEFAULT_BASE_URL if provided via command line
-    global DEFAULT_BASE_URL
-    DEFAULT_BASE_URL = args.base_url # This makes get_base_url() use the arg if QOFFEE_BASE_URL is not set
+    # The get_base_url function now handles the args.base_url internally.
+    # No need to modify global DEFAULT_BASE_URL here.
 
     args.func(args)
 

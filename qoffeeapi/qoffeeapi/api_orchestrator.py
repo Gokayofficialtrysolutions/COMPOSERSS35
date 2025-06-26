@@ -128,6 +128,120 @@ class OrchestratorHCDeleteFailedCommandHandler(IPythonHandler):
             self.set_status(500)
             self.finish({"error": f"An unexpected error occurred: {str(e)}"})
 
+# System Health Check
+class OrchestratorHealthCheckHandler(IPythonHandler):
+    def get(self):
+        # No @web.authenticated, this should be a public endpoint for diagnostics
+        import datetime
+        import os # For IBMQ_API_KEY and file checks
+
+        connector = get_connector() # Initialize/get the connector to check its state
+
+        health_status = {
+            "overall_status": "OK", # Will be changed if issues are found
+            "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+            "services": {
+                "home_connect_api": {
+                    "status": "UNKNOWN", "message": "",
+                    "details": {
+                        "api_url_configured": bool(connector.api_base_url),
+                        "client_id_configured": bool(connector.client_id),
+                        "tokens_exist": bool(connector.tokens and "access_token" in connector.tokens),
+                        "can_reach_api": connector.is_online, # Relies on prior checks by connector
+                        "token_last_refreshed_at": connector.tokens.get("last_refresh_time") if connector.tokens else None, # Assuming tokens dict might store this
+                        "token_expires_at": datetime.datetime.fromtimestamp(connector.tokens.get("expires_at")).isoformat() + "Z" if connector.tokens and connector.tokens.get("expires_at") else None
+                    }
+                },
+                "ibmq": {
+                    "status": "UNKNOWN", "message": "",
+                    "details": {"api_key_set": bool(os.getenv("IBMQ_API_KEY"))}
+                },
+                "local_storage": {
+                    "status": "UNKNOWN", "message": "",
+                    "details": {
+                        "config_file_path": connector.path, # .user/oauth-token.json
+                        "config_file_exists": os.path.isfile(connector.path if connector.path else ""),
+                        "user_dir_writable": os.access(".user/", os.W_OK) if os.path.isdir(".user/") else False
+                    }
+                }
+            },
+            "queues": connector.get_queue_summary() if connector else {
+                "active_commands": "N/A", "failed_commands": "N/A", "failed_commands_summary": []
+            }
+        }
+
+        # --- Home Connect API Status Logic ---
+        hc_service = health_status["services"]["home_connect_api"]
+        if not hc_service["details"]["api_url_configured"] or not hc_service["details"]["client_id_configured"]:
+            hc_service["status"] = "UNCONFIGURED"
+            hc_service["message"] = "Home Connect API URL or Client ID is not configured."
+            health_status["overall_status"] = "ERROR"
+        elif not hc_service["details"]["tokens_exist"]:
+            hc_service["status"] = "NOT_AUTHENTICATED"
+            hc_service["message"] = "Not authenticated with Home Connect. Please login via /auth."
+            if health_status["overall_status"] != "ERROR": health_status["overall_status"] = "WARNING"
+        elif not hc_service["details"]["can_reach_api"]:
+            hc_service["status"] = "OFFLINE"
+            hc_service["message"] = "Home Connect API seems unreachable (connector is offline)."
+            if health_status["overall_status"] != "ERROR": health_status["overall_status"] = "WARNING"
+        else: # Online and tokens exist
+            # Basic check: if token_expires_at is available and in the past
+            if hc_service["details"]["token_expires_at"]:
+                try:
+                    # Assuming expires_at is a UNIX timestamp
+                    expiry_time = connector.tokens.get("expires_at") # This is usually a future timestamp
+                    # Home Connect tokens usually include "expires_in" (seconds from issue).
+                    # A true "expires_at" would need to be calculated: issued_at + expires_in.
+                    # For simplicity, if 'expires_at' was stored as an absolute timestamp:
+                    if expiry_time and expiry_time < time.time():
+                         hc_service["status"] = "TOKEN_EXPIRED"
+                         hc_service["message"] = "Home Connect access token appears to be expired. Refresh may be needed."
+                         if health_status["overall_status"] != "ERROR": health_status["overall_status"] = "WARNING"
+                    else:
+                        hc_service["status"] = "AUTHENTICATED"
+                        hc_service["message"] = "Home Connect API configured, online, and authenticated."
+                except Exception: # Error parsing time etc.
+                     hc_service["status"] = "AUTHENTICATED" # Assume ok if parsing fails for now
+                     hc_service["message"] = "Home Connect API configured, online, and authenticated (expiry check error)."
+            else: # No expiry info in token to check easily
+                hc_service["status"] = "AUTHENTICATED"
+                hc_service["message"] = "Home Connect API configured, online, and authenticated."
+
+
+        # --- IBMQ Status Logic ---
+        ibmq_service = health_status["services"]["ibmq"]
+        if not ibmq_service["details"]["api_key_set"]:
+            ibmq_service["status"] = "API_KEY_MISSING"
+            ibmq_service["message"] = "IBMQ_API_KEY is not set in the environment."
+            # This is a warning, not an error, as core coffee functionality doesn't depend on it.
+            if health_status["overall_status"] == "OK": health_status["overall_status"] = "WARNING"
+        else:
+            ibmq_service["status"] = "API_KEY_SET"
+            ibmq_service["message"] = "IBMQ_API_KEY is configured."
+            # A deeper check (e.g., trying to list providers) could be added but is slow.
+
+        # --- Local Storage Logic ---
+        ls_service = health_status["services"]["local_storage"]
+        if not ls_service["details"]["user_dir_writable"]:
+            ls_service["status"] = "WRITE_ERROR"
+            ls_service["message"] = "The '.user/' directory is not writable. Cannot save tokens/cache."
+            health_status["overall_status"] = "ERROR"
+        elif not ls_service["details"]["config_file_exists"]:
+            ls_service["status"] = "OK" # It's okay if it doesn't exist yet (first run)
+            ls_service["message"] = "Config file '.user/oauth-token.json' not found (normal for first run or if no auth yet)."
+        else:
+            ls_service["status"] = "OK"
+            ls_service["message"] = "Local storage directory is writable and config file exists (if previously authenticated)."
+
+        # --- Final Overall Status Check ---
+        if health_status["queues"]["failed_commands"] > 0:
+            if health_status["overall_status"] == "OK": health_status["overall_status"] = "WARNING"
+            hc_service["message"] += f" {health_status['queues']['failed_commands']} command(s) in failed queue."
+
+
+        self.set_header("Content-Type", "application/json")
+        self.finish(json.dumps(health_status, indent=2))
+
 
 # get power state and turn on machine from the API
 class OrchestratorMachinePowerHandler(IPythonHandler):
