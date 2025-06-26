@@ -449,6 +449,8 @@ define([
         $('body').append('<div id="qoffee-global-status-bar" style="position: fixed; bottom: 0; left: 0; width: 100%; background-color: #333; color: white; padding: 5px 10px; font-size: 0.9em; z-index: 10000; text-align: center; display: none;">Qoffee Status</div>');
         // Initial online status check for the bar
         updateOnlineStatus();
+        // Start polling for queue status
+        startQueueStatusPolling();
     }
 
     // Helper function to update the global status bar
@@ -481,7 +483,77 @@ define([
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
     // Initial check
-    // updateOnlineStatus(); // Call it once on load within load_ipython_extension
+    // updateOnlineStatus(); // Called now in load_ipython_extension
+
+    let queueStatusPollerInterval = null;
+    const POLLING_INTERVAL = 30000; // 30 seconds
+
+    function fetchAndUpdateQueueStatus() {
+        if (!navigator.onLine) {
+            // If browser thinks it's offline, no point in polling our backend for this.
+            // The generic 'Network: Offline' message from updateOnlineStatus() should cover it.
+            // Or, we could set a specific "Queue status: Offline / Unknown"
+            // updateGlobalStatus("Queue status: Offline / Unknown", 'warning');
+            return;
+        }
+
+        fetch("/api/hc/queue-status", {
+            method: 'get',
+            credentials: 'same-origin',
+            headers: { 'X-XSRFToken': document.cookie.replace("_xsrf=", "") }
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            }
+            // Don't show error for failed poll, just log it, to avoid annoying user.
+            console.error("Failed to fetch queue status:", response.status);
+            return null;
+        })
+        .then(data => {
+            if (data) {
+                let statusMsg = `Network: Online`;
+                if (data.active_queue_length > 0) {
+                    statusMsg += ` | Queued: ${data.active_queue_length}`;
+                }
+                if (data.failed_queue_length > 0) {
+                    statusMsg += ` | Failed: ${data.failed_queue_length}`;
+                    updateGlobalStatus(statusMsg, 'warning'); // Keep visible if there are failed items
+                } else if (data.active_queue_length > 0) {
+                    updateGlobalStatus(statusMsg, 'info'); // Keep visible if items are queued
+                } else {
+                    // If everything is fine, show briefly or not at all,
+                    // or integrate with the 'Network: Online' message from updateOnlineStatus
+                    // For now, let updateOnlineStatus handle the pure "Online" message.
+                    // This function will only make the bar persistent if there's something in queues.
+                }
+            }
+        })
+        .catch(error => {
+            console.error("Error fetching or processing queue status:", error);
+            // updateGlobalStatus("Could not fetch queue status.", 'error', 5000);
+        });
+    }
+
+    function startQueueStatusPolling() {
+        if (queueStatusPollerInterval) {
+            clearInterval(queueStatusPollerInterval);
+        }
+        fetchAndUpdateQueueStatus(); // Initial fetch
+        queueStatusPollerInterval = setInterval(fetchAndUpdateQueueStatus, POLLING_INTERVAL);
+        console.log("Queue status polling started.");
+    }
+
+    function stopQueueStatusPolling() {
+        if (queueStatusPollerInterval) {
+            clearInterval(queueStatusPollerInterval);
+            queueStatusPollerInterval = null;
+            console.log("Queue status polling stopped.");
+        }
+    }
+    // Expose for potential manual start/stop or if other logic needs to control it
+    // window.startQoffeeQueuePolling = startQueueStatusPolling;
+    // window.stopQoffeeQueuePolling = stopQueueStatusPolling;
 
 
     return {

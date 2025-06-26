@@ -458,6 +458,76 @@ class HomeconnectConnector(PersistentOAuth2Connector):
         print(f"Queue processing finished: {summary}")
         return summary
 
+    def get_queue_summary(self):
+        """
+        Returns a summary of the command queues.
+        """
+        # Create a serializable summary of failed commands (e.g., omitting full payload)
+        failed_summary = []
+        for idx, cmd in enumerate(self.failed_commands_queue):
+            failed_summary.append({
+                "id": idx, # Simple index-based ID for now
+                "type": cmd.get("type"),
+                "endpoint": cmd.get("endpoint"),
+                "program_key": cmd.get("program_key"), # Specific to program_drink
+                "setting_key": cmd.get("setting_key"), # Specific to set_setting
+                "timestamp": cmd.get("timestamp"),
+                "retry_count": cmd.get("retry_count"),
+                "last_failure_timestamp": cmd.get("last_failure_timestamp"),
+                "last_failure_status": cmd.get("last_failure_status"),
+                "error_reason": cmd.get("error_reason") # For unknown type or other processing errors
+            })
+        return {
+            "active_queue_length": len(self.command_queue),
+            "failed_queue_length": len(self.failed_commands_queue),
+            "failed_commands_summary": failed_summary
+        }
+
+    def retry_failed_command(self, command_index: int):
+        """
+        Moves a command from the failed_commands_queue back to the active command_queue
+        and resets its retry_count.
+        Args:
+            command_index: The index of the command in the failed_commands_queue.
+        Returns:
+            True if successful, False if index is invalid.
+        """
+        if 0 <= command_index < len(self.failed_commands_queue):
+            command_to_retry = self.failed_commands_queue.pop(command_index)
+            command_to_retry["retry_count"] = 0 # Reset retry count
+            # Clear previous failure specific info if any, or keep for history
+            command_to_retry.pop("last_failure_timestamp", None)
+            command_to_retry.pop("last_failure_status", None)
+            command_to_retry.pop("last_failure_response", None)
+            command_to_retry.pop("error_reason", None)
+
+            self.command_queue.append(command_to_retry)
+            self.save_config()
+            print(f"Command at failed_queue index {command_index} moved to active queue for retry.")
+            # Optionally, trigger queue processing immediately if online
+            # self.process_command_queue()
+            return True
+        else:
+            print(f"Invalid command index for retry: {command_index}")
+            return False
+
+    def delete_failed_command(self, command_index: int):
+        """
+        Deletes a command from the failed_commands_queue.
+        Args:
+            command_index: The index of the command in the failed_commands_queue.
+        Returns:
+            True if successful, False if index is invalid.
+        """
+        if 0 <= command_index < len(self.failed_commands_queue):
+            deleted_command = self.failed_commands_queue.pop(command_index)
+            self.save_config()
+            print(f"Command {deleted_command.get('type')} for endpoint {deleted_command.get('endpoint')} deleted from failed queue.")
+            return True
+        else:
+            print(f"Invalid command index for delete: {command_index}")
+            return False
+
 
 # singleton
 _HOMECONNECT_CONNECTOR = None

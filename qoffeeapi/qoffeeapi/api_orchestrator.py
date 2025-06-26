@@ -46,6 +46,76 @@ class OrchestratorMachineStateHandler(IPythonHandler):
             self.set_status(500)
             self.finish({"error": f"An unexpected error occurred: {str(e)}", "source": "unexpected_error"})
 
+# Get summary of Home Connect command queues
+class OrchestratorHCQueueStatusHandler(IPythonHandler):
+    @web.authenticated
+    def get(self):
+        connector = get_connector()
+        try:
+            summary = connector.get_queue_summary()
+            self.finish(summary)
+        except Exception as e:
+            self.set_status(500)
+            self.finish({"error": f"An unexpected error occurred while fetching queue status: {str(e)}"})
+
+# Retry a failed Home Connect command
+class OrchestratorHCRetryFailedCommandHandler(IPythonHandler):
+    @web.authenticated
+    def post(self):
+        connector = get_connector()
+        try:
+            body = self.get_json_body()
+            if body is None or "command_index" not in body:
+                self.set_status(400)
+                self.finish({"error": "Missing 'command_index' in request body."})
+                return
+
+            command_index = int(body["command_index"])
+            success = connector.retry_failed_command(command_index)
+
+            if success:
+                # Also trigger a queue process attempt
+                if connector.is_online:
+                    connector.process_command_queue()
+                self.finish({"message": f"Command at index {command_index} moved to active queue for retry.", "new_queue_status": connector.get_queue_summary()})
+            else:
+                self.set_status(404) # Or 400 if index format is bad vs index not found
+                self.finish({"error": f"Command at index {command_index} not found or could not be retried.", "new_queue_status": connector.get_queue_summary()})
+        except ValueError:
+            self.set_status(400)
+            self.finish({"error": "'command_index' must be an integer."})
+        except Exception as e:
+            self.set_status(500)
+            self.finish({"error": f"An unexpected error occurred: {str(e)}"})
+
+# Delete a failed Home Connect command
+class OrchestratorHCDeleteFailedCommandHandler(IPythonHandler):
+    @web.authenticated
+    def post(self):
+        connector = get_connector()
+        try:
+            body = self.get_json_body()
+            if body is None or "command_index" not in body:
+                self.set_status(400)
+                self.finish({"error": "Missing 'command_index' in request body."})
+                return
+
+            command_index = int(body["command_index"])
+            success = connector.delete_failed_command(command_index)
+
+            if success:
+                self.finish({"message": f"Command at index {command_index} deleted from failed queue.", "new_queue_status": connector.get_queue_summary()})
+            else:
+                self.set_status(404) # Or 400
+                self.finish({"error": f"Command at index {command_index} not found or could not be deleted.", "new_queue_status": connector.get_queue_summary()})
+        except ValueError:
+            self.set_status(400)
+            self.finish({"error": "'command_index' must be an integer."})
+        except Exception as e:
+            self.set_status(500)
+            self.finish({"error": f"An unexpected error occurred: {str(e)}"})
+
+
 # get power state and turn on machine from the API
 class OrchestratorMachinePowerHandler(IPythonHandler):
     @web.authenticated
