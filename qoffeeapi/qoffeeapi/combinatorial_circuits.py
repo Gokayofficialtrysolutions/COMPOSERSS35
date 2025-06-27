@@ -214,12 +214,19 @@ combinatorial_circ_reg = [
         "args": {"num_qubits": 4, "pattern": "BIT_REVERSAL_4Q"}
     },
     {
-        "id": "comb_n3_k1_wstate_gates", # Different ID from the one using initialize
-        "name": "N=3, k=1 (W-State via gates)",
-        "description": "Gate-based construction of 3-qubit W-state (|001>+|010>+|100>)/√3.",
-        "generator": generate_w_state_n3, # This function takes no args
+        "id": "w_state_n2_gates",
+        "name": "N=2, k=1 (W-like, Gates)",
+        "description": "Gate-based circuit for (|01>+|10>)/√2. (Bell state |Ψ+⟩)",
+        "generator": generate_w_state_n2_gates,
         "args": {}
     },
+    {
+        "id": "w_state_n3_library",
+        "name": "N=3, k=1 (W-State, Library)",
+        "description": "Uses qiskit.circuit.library.WState for (|001>+|010>+|100>)/√3. Decomposable.",
+        "generator": generate_w_state_n3_library,
+        "args": {}
+    } # No comma after the last item in the list
 ]
 
 if __name__ == '__main__':
@@ -470,105 +477,62 @@ if __name__ == '__main__':
     print(qc_perm_custom_3q.draw(output='text'))
 
 
-def generate_w_state_n3() -> QuantumCircuit:
+def generate_w_state_n2_gates() -> QuantumCircuit:
     """
-    Generates the 3-qubit W-state: (|001> + |010> + |100>) / sqrt(3).
-    This is a specific example of a "combination" N=3, k=1 state,
-    implemented using gates for educational purposes.
+    Generates the 2-qubit W-state analog: (|10> + |01>) / sqrt(2) using elementary gates.
+    Qubit order q1, q0 (q1 is most significant).
+    So |10> is q1=1, q0=0. |01> is q1=0, q0=1.
     """
-    qc = QuantumCircuit(3) # No classical bits needed for state prep
+    qc = QuantumCircuit(2, name="W_2_state_gates (N=2,k=1)")
+    qc.h(0)    # Prepares state (1/sqrt(2)) * (|00> + |01>) (q1=0, q0 in superposition)
+    qc.cx(0,1) # If q0=0, q1=0. If q0=1, q1=1. State: (1/sqrt(2)) * (|00> + |11>) (Bell state |Φ+⟩)
+    qc.x(0)    # Flips q0. State: (1/sqrt(2)) * (|01> + |10>) (Bell state |Ψ+⟩)
+               # If qiskit's default order is qN-1..q0, then q0 is the rightmost qubit.
+               # |01> means q1=0, q0=1.  |10> means q1=1, q0=0. This is correct.
+    return qc
 
-    # A common (though not unique or always most efficient) way to construct W_3
-    # This specific sequence aims for |001> + |010> + |100>
-    # It's more complex than a simple Ry rotation for each if we want specific coefficients for W state.
-    # For |W_3> = (1/sqrt(3)) * (|100> + |010> + |001>)
-
-    # Using a known construction:
-    # 1. Start with |001> (X on q0, assuming q0 is least significant for |..q2.q1.q0>)
-    #    If qiskit's default is qN-1...q0, then X on q2 for |001>
-    #    Let's assume qiskit default: q2, q1, q0. So |001> is X on q0.
-
-    # Simpler approach often involves multi-controlled rotations or specific unitaries.
-    # A known sequence for N=3 W state (requires specific angles):
-    qc.ry(2 * np.arccos(1/np.sqrt(3)), 0) # Theta for first qubit
-    qc.ch(0, 1) # Controlled-Hadamard
-    qc.cx(1, 2)
-    qc.cx(0, 1)
-    qc.x(0) # To get |100>+|010>+|001> instead of |000>+|011>+|101> type states from some W constructions.
-            # This specific sequence might not be the standard textbook one for W,
-            # but aims to create the desired superposition of Hamming weight 1 states.
-            # Let's use a more direct, if less "elementary gate" approach for clarity here,
-            # or stick to qc.initialize for combinations if simple gates are too obscure.
-
-    # Given the educational goal, and that general N-k combination states are hard with elementary gates,
-    # let's provide a well-known specific W-state construction.
-    # Standard W_3 state construction (from Nielsen & Chuang, Box 4.2, using their qubit ordering)
-    # Qiskit orders qubits q_n-1, ..., q_0.
-    # To get ( |100> + |010> + |001> ) / sqrt(3)
-    # Apply X to get |001>
-    qc.x(0) # state is |001> (q2=0, q1=0, q0=1)
-
-    # This is actually non-trivial to build with just H, X, CNOT, Ry for exact W state.
-    # Many W-state constructions use Ry rotations with specific angles derived from probabilities,
-    # or use controlled operations.
-    # Example: (from Qiskit textbook tutorials, slightly adapted)
-    # This creates a W state where one qubit is |1> and others |0>
-    # For N=3:
-    # Start: |000>
-    # Apply Ry(theta1) to q0
-    # Controlled-Ry(theta2) from q0 to q1
-    # Multi-Controlled-Ry(theta3) from q0,q1 to q2
-    # Then X gates controlled by previous qubits.
-
-    # Let's use a simpler construction that's more about demonstrating a superposition of k=1 states,
-    # even if amplitudes aren't perfectly sqrt(1/3) without specific angle calculations.
-    # A more direct way for this *specific* superposition (equal amps for |001>, |010>, |100>):
-    # Use initialize as it's clear for the target state for combinations.
-    # If a GATE-BASED version is desired for W3, it's a separate, known construction:
-
-    # Reset qc for a clear W3 construction
-    qc = QuantumCircuit(3, name="W_3_state (N=3, k=1)") # Classical bits not strictly needed for state prep
-
-    # Construction from https://quantumcomputing.stackexchange.com/questions/2470/how-can-i-realize-the-n-qubit-w-state
-    # theta_1 = 2 * np.arcsin(1/np.sqrt(3))
-    # theta_2 = 2 * np.arcsin(1/np.sqrt(2))
-    # qc.ry(theta_1, 2) # Apply to most significant qubit (q2)
-    # qc.ch(2,1)
-    # qc.ccx(2,1,0) # This creates GHZ like state if not careful
-    # qc.x(2)
-    # qc.x(1)
-
-    # Let's use a very explicit construction for (|100> + |010> + |001>)/sqrt(3)
-    # This is complex to make perfectly uniform with elementary gates without specific angles.
-    # The `initialize` method in `generate_combination_superposition_circuit` is better for showing the *target state*.
-    # For a specific *gate-based* W-state example, we should use a known, clear construction.
-
-    # Using Qiskit's WState class for a reliable, if opaque, construction:
+def generate_w_state_n3_library() -> QuantumCircuit:
+    """
+    Generates the 3-qubit W-state: (|100> + |010> + |001>) / sqrt(3)
+    using Qiskit's WState library function.
+    This is for educational purposes to show a correct W-state and allow users
+    to decompose it to see the underlying gates.
+    Qubit order q2, q1, q0.
+    """
     from qiskit.circuit.library import WState
-    w3_gate = WState(num_qubits=3,
-                     # The WState prepares superposition of states with one |1⟩.
-                     # Default is sum |100...0⟩ + |010...0⟩ + ...
-                     # which is exactly what we want for k=1.
-                    )
-    qc.append(w3_gate, [0,1,2]) # Apply to q0, q1, q2
+    qc = QuantumCircuit(3, name="W_3_state_lib (N=3,k=1)")
 
-    # Decompose to see gates if possible (for education)
-    # qc = qc.decompose() # This might be too complex for a simple example display
-
+    # WState(3) prepares sum |100>, |010>, |001> with equal amplitude.
+    # Qiskit's qubit ordering is typically qN-1 ... q0.
+    # So, for num_qubits=3, WState default will produce sum over |100>, |010>, |001>
+    w3_gate_instance = WState(num_qubits=3)
+    qc.append(w3_gate_instance, [0,1,2]) # Apply to qubits q0, q1, q2
+                                        # Qiskit's WState applies to specified qubits.
+                                        # If we want it on q2,q1,q0, the order [2,1,0] might be more intuitive
+                                        # but Qiskit's WState internally handles the mapping to basis states correctly.
+                                        # Using [0,1,2] is standard.
     return qc
 
 # Test W-state
 if __name__ == '__main__':
     # ... (previous tests remain the same) ...
-    qc_w3 = generate_w_state_n3()
-    print("\nN=3 W-state Circuit (Gate-based for k=1 combination):")
+
+    qc_w2_gates = generate_w_state_n2_gates()
+    print("\nN=2 W-state analog (Gate-based):")
+    print(qc_w2_gates.draw(output='text'))
+
+    qc_w3_lib = generate_w_state_n3_library()
+    print("\nN=3 W-state Circuit (from Qiskit Library):")
     try:
-        print(qc_w3.draw(output='text'))
+        print(qc_w3_lib.draw(output='text'))
+        print("\nDecomposed N=3 W-state Circuit (from Qiskit Library):")
+        print(qc_w3_lib.decompose().draw(output='text')) # Show decomposed version
         # To verify, simulate it:
         # from qiskit import Aer, execute
         # simulator = Aer.get_backend('statevector_simulator')
-        # result = execute(qc_w3, simulator).result()
+        # result = execute(qc_w3_lib, simulator).result()
         # statevector = result.get_statevector()
-        # print(statevector.draw(output='latex_source')) # shows amps for |001>, |010>, |100>
+        # print("Statevector for W3 (Library):")
+        # print(statevector)
     except Exception as e:
-        print(f"Could not draw W3 state (possibly due to environment): {e}")
+        print(f"Could not draw/decompose W3 state (possibly due to environment): {e}")
