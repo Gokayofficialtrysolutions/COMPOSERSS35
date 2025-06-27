@@ -1,17 +1,13 @@
-# replace "ABCDEF" with your correct token
+# Qoffee Explorer Environment Variables Template
+# Copy this file to .env and fill in your values.
 
-### Simulator
-#HOMECONNECT_API_URL=https://simulator.home-connect.com
-#HOMECONNECT_CLIENT_ID=ABCDEF
-#HOMECONNECT_CLIENT_SECRET=ABCDEF
+# Optional: IBM Quantum API Key
+# Needed if you want to try sending circuits to real IBM Quantum hardware
+# or IBM Cloud Simulators (requires an internet connection).
+# For purely offline use with local Qiskit Aer simulators, this can be left blank.
+IBMQ_API_KEY=YOUR_IBMQ_API_KEY_HERE
 
-### Real Device
-HOMECONNECT_API_URL=https://api.home-connect.com
-HOMECONNECT_CLIENT_ID=ABCDEF
-HOMECONNECT_CLIENT_SECRET=ABCDEF
-
-HOMECONNECT_REDIRECT_URL=http://localhost:8887/auth/callback
-
-DEVICE_HA_ID=
-
-IBMQ_API_KEY=ABCDEF
+# Optional: QOFFEE_BASE_URL for the CLI tool
+# Only needed if your Jupyter server for Qoffee Explorer runs on a different
+# host or port than the default http://localhost:8887
+# QOFFEE_BASE_URL=http://localhost:8887

@@ -2,569 +2,310 @@ define([
     'base/js/namespace',
     'jquery',
     'require',
-    requirejs.toUrl('./lib/lz-string.min.js'), // Local path
-    requirejs.toUrl('./lib/qrcode.min.js')     // Local path
+    requirejs.toUrl('./lib/lz-string.min.js'), // Local path for LZString
+    requirejs.toUrl('./lib/qrcode.min.js')     // Local path for QRCode.js
 ], function(
-    jupyter, $, requirejs, LZString, QRCode // Ensure the variable names match what the libraries export
+    jupyter, $, requirejs, LZString, QRCode // Arguments for loaded modules
 ) {
 
     /** is app mode active */
     let appActive = false;
 
     /**
-     * Handler to be called when a cell is selected. Just unselect it.
-     * @function handleCellSelection
+     * Handler to be called when a cell is selected. Just unselect it in app mode.
      */
     function handleCellSelection() {
-        if(!appActive) { // disable
+        if(!appActive) {
             return;
         }
-        $(".app-view").removeClass("selected");
-    }
-
-    function goFullscreen() {
-        document.documentElement.requestFullscreen().then(_ => {
-            console.log("Fullscreen started");
-        }, error => {
-            console.log("Fullscreen rejected");
-        });
+        // Assuming ".app-view" is a class you might add to cells part of your app's UI
+        // to differentiate them, or this might need adjustment based on how views are defined.
+        // For now, it just ensures no cells can be selected in app mode.
+        jupyter.notebook.getSelectedCells().forEach(cell => cell.unselect());
+        // Alternative: $(".selected").removeClass("selected"); if cells get 'selected' class
     }
 
     /**
-     * Activate the app mode, build viewId index and initialize event listeners
-     * @function activateApp
+     * Attempts to request fullscreen mode for the document.
+     */
+    function goFullscreen() {
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().then(() => {
+                console.log("Fullscreen activated.");
+            }).catch(err => {
+                console.log(`Fullscreen request failed: ${err.message} (${err.name})`);
+            });
+        } else {
+            console.log("Fullscreen API not supported by this browser.");
+        }
+    }
+
+    /**
+     * Activates the application mode: hides Jupyter UI elements, enables app-specific CSS.
      */
     function activateApp() {
         appActive = true;
-        // add class to body to make CSS rules apply
-        $("body").addClass("app-mode");
+        $("body").addClass("app-mode show-fav-gates"); // Combine classes
 
-        // add class to only show favorite gates per default
-        $("body").addClass("show-fav-gates")
-
-        //
-        // loop cells, get their viewIds and add corresponding classes
-        //
-        // keep track of very first view (default)
-        jupyter.notebook.get_cells().map((cell, idx) => {
+        // Example: Add CSS classes to cells intended as app views (if any)
+        // This part might be less relevant if the entire notebook IS the app view.
+        jupyter.notebook.get_cells().forEach(cell => {
             const cellContent = cell.get_text();
-            // if it is a view cell
-            if(cellContent.startsWith("### APP")) {
-                // add CSS classes to cells
-                $(cell.element).addClass("app-view");
+            if(cellContent.startsWith("### APP_VIEW_IDENTIFIER")) { // Example identifier
+                $(cell.element).addClass("qoffee-app-cell-view");
             }
         });
-        // disable selection of cells
+
+        // Prevent cell selection in app mode
         $(jupyter.events).on("select.Cell", handleCellSelection);
 
-        goFullscreen();
+        // Optional: Attempt fullscreen
+        // goFullscreen(); // Commented out as it can be intrusive
 
-        // automatically restart
-        restart();
+        // Optional: Restart kernel and run all (if this is desired app startup behavior)
+        // restartKernelAndRunAll();
+        console.log("Qoffee Explorer App Mode Activated.");
     }
 
     /**
-     * Deactivate the app mode, remove event listeners
-     * @function deactivateApp
+     * Deactivates the application mode: shows Jupyter UI elements, removes app-specific CSS.
      */
     function deactivateApp() {
         appActive = false;
-        // remove class from body
-        $("body").removeClass("app-mode");
-        // enable selection of cells
+        $("body").removeClass("app-mode show-fav-gates");
         $(jupyter.events).off("select.Cell", handleCellSelection);
+
+        // Optional: Exit fullscreen if it was entered
+        // if (document.fullscreenElement) {
+        //     document.exitFullscreen();
+        // }
+        console.log("Qoffee Explorer App Mode Deactivated.");
     }
 
     /**
-     * Restart kernel, execute all cells and block view with an overlay during this time
-     * @function restart
+     * Restarts the Jupyter kernel and runs all cells. Shows a loading overlay.
+     * This is a powerful action and should be used judiciously.
      */
-    function restart() {
-        // add an overlay
-        $("body").prepend('<div id="restart-overlay"><h1>Reloading</h1></div>');
-        // restart kernel and execute all cells
+    function restartKernelAndRunAll() {
+        $("body").prepend('<div id="qoffee-restart-overlay" style="position:fixed; top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);color:white;z-index:20000;display:flex;align-items:center;justify-content:center;"><h1>Reloading Application & Kernel...</h1></div>');
         jupyter.actions.call("jupyter-notebook:restart-kernel-and-run-all-cells");
-        // periodically check when the notebook is ready
-        setTimeout(() => {
-            var restartInterval = setInterval(() => {
-                if(!jupyter.notebook.kernel_busy) {
-                    clearInterval(restartInterval);
-                    $("#restart-overlay").remove(); // remove overlay
-                }
-            }, 1000)
-        }, 1000)
+
+        // Periodically check for kernel busy state to remove overlay
+        let restartCheckInterval = setInterval(() => {
+            if (jupyter.notebook && !jupyter.notebook.kernel_busy) {
+                clearInterval(restartCheckInterval);
+                $("#qoffee-restart-overlay").remove();
+                console.log("Kernel restarted and cells run.");
+            }
+        }, 1000);
     }
 
     /**
-     * Toggle class on body "show-fav-gates". This toggles the CSS state of additional gates
-     * @function toggleGates
+     * Toggles visibility of less frequently used quantum gates in the composer.
+     * Relies on CSS class `show-fav-gates` on `body`.
      */
     function toggleGates() {
         $("body").toggleClass("show-fav-gates");
     }
 
     /**
-     * Call backend to refresh authentication i.e. access tokens
-     * @function refreshAuth
-     */
-    function refreshAuth() {
-        console.log("Start refreshing auth key")
-
-        function setAuthStatus(success) {
-            const color = (success) ? 'green' : 'red';
-            document.getElementById('refreshauth-button-container').style.backgroundColor = color;
-            setTimeout(() => {
-                document.getElementById('refreshauth-button-container').style.backgroundColor = null;
-            }, 2000);
-        }
-
-        return new Promise((resolve, reject) => {
-            // do POST request to Jupyter backend
-            fetch("/auth/refresh", {
-                method: 'get',
-                credentials: 'same-origin',
-                headers: {
-                    'X-XSRFToken': document.cookie.replace("_xsrf=", "")
-                }
-            }).then(response => {
-                // if fail, alert and go to welcome
-                if(!response.ok) {
-                    setAuthStatus(false);
-                    alert("Authentication with Homeconnect failed.");
-                    window.open('/auth', '_blank');
-                    reject();
-                }
-                // if succeed to to success
-                else {
-                    setAuthStatus(true);
-                    resolve();
-                }
-            }, error => {
-                alert("Authentication with Homeconnect failed.");
-                window.open('/auth', '_blank');
-                console.error(error);
-                reject(error);
-            })
-        })
-    }
-
-    /**
-     * Call backend to activate the coffee machine i.e. to set the power state to on
-     * @function activateCoffeeMachine
-     */
-    function activateCoffeeMachine() {
-        console.log("Activating coffee machine")
-        return new Promise((resolve, reject) => {
-            // do POST request to Jupyter backend
-            fetch("/machine/power", {
-                method: 'post',
-                credentials: 'same-origin',
-                headers: {
-                    'X-XSRFToken': document.cookie.replace("_xsrf=", "")
-                }
-            }).then(response => {
-                if (response.status === 202) { // Queued
-                    response.json().then(body => {
-                        const msg = body.message || "Coffee machine activation command queued.";
-                        alert(msg);
-                        updateGlobalStatus(msg, 'info', 5000); // Show for 5 seconds
-                        resolve({"status": "queued", "response": body});
-                    }).catch(() => {
-                        const msg = "Coffee machine activation command queued (could not parse server message).";
-                        alert(msg);
-                        updateGlobalStatus(msg, 'warning', 5000);
-                        resolve({"status": "queued"});
-                    });
-                } else if (!response.ok) {
-                    const errorMsg = "Could not activate coffee machine. Status: " + response.status;
-                    alert(errorMsg);
-                    updateGlobalStatus(errorMsg, 'error', 5000);
-                    reject({"status": "error", "http_status": response.status});
-                } else { // OK
-                    console.log("Coffee machine activated (or command sent successfully).");
-                    updateGlobalStatus("Machine activated!", 'info', 3000);
-                    resolve({"status": "ok"});
-                }
-            }, error => {
-                alert("Could not activate coffee machine.");
-                console.error(error);
-                reject(error);
-            })
-        })
-    }
-
-    /**
-     * Request a drink from the coffee machine
-     * @function requestDrink
-     * @param {string} drinkKey A valid programme for the coffee machine
-     * @param {Object} drinkOptions A map of valid programm options with the corresponding values
-     */
-    function requestDrink(drinkKey, drinkOptions) {
-        console.log("Start requesting", drinkKey, "with options", drinkOptions)
-        return new Promise((resolve, reject) => {
-            // tea is not supported by API
-            if(drinkKey == "NotImplemented") {
-                alert("Unfortunately, the Coffee Machine does not implement this beverage. Please start by hand.");
-                resolve();
-                return;
-            }
-            // do POST request to Jupyter backend
-            fetch("/drink", {
-                method: 'post',
-                credentials: 'same-origin',
-                headers: {
-                    'X-XSRFToken': document.cookie.replace("_xsrf=", "")
-                },
-                body: JSON.stringify({
-                    key: drinkKey,
-                    options: drinkOptions
-                })
-            }).then(response => {
-                if (response.status === 202) { // Queued
-                    return response.json().then(body => {
-                        const msg = body.message || "Drink command queued.";
-                        alert(msg);
-                        updateGlobalStatus(msg, 'info', 5000);
-                        // Resolve with a structure that Python response_handler can use
-                        resolve({ "status": "queued", "message": body.message, "details": body.details });
-                    }).catch(() => {
-                        const msg = "Drink command queued (could not parse server message).";
-                        alert(msg);
-                        updateGlobalStatus(msg, 'warning', 5000);
-                        resolve({ "status": "queued", "message": "Drink command queued (server message parse error)." });
-                    });
-                } else if (!response.ok) {
-                    // Try to get error message from backend if available
-                    return response.text().then(text => { // Use text() first as it might not be JSON
-                        let errorMsgDisplayed = "Could not get drink.";
-                        try {
-                            const errorBody = JSON.parse(text);
-                            errorMsgDisplayed = "Could not get drink: " + (errorBody.error || errorBody.message || response.statusText);
-                            alert(errorMsgDisplayed);
-                            reject({ "status": "error", "http_status": response.status, "message": (errorBody.error || errorBody.message || response.statusText), "body": errorBody });
-                        } catch (e) {
-                            errorMsgDisplayed = "Could not get drink. Status: " + response.status + ". " + text;
-                            alert(errorMsgDisplayed);
-                            reject({ "status": "error", "http_status": response.status, "message": text });
-                        }
-                        updateGlobalStatus(errorMsgDisplayed, 'error', 5000);
-                    });
-                } else { // OK (live success)
-                    const successMsg = "Drink command sent successfully!";
-                    console.log(successMsg);
-                    updateGlobalStatus(successMsg, 'info', 3000);
-                    // Resolve with a structure that Python response_handler can use
-                    resolve({ "status": "ok" });
-                }
-            }, error => {
-                reject(error);
-                alert("Could not get drink\n"+response.statusText);
-                console.error(error);
-            })
-        })
-    }
-
-    /**
-     * Close fullscreen
-     * @function closeFullscreen
+     * Closes fullscreen mode if active.
      */
     function closeFullscreen() {
-        // close full screen if activated
-        try {
-            const exitFullscreenFn = document.exitFullscreen
-            || document.webkitExitFullscreen
-            || document.mozCancelFullScreen
-            || document.msExitFullscreen
-            exitFullscreenFn.call(document);
-        } catch (error) {
-            console.info("Not able to close fullscreen, fail silently")
+        if (document.fullscreenElement) {
+            document.exitFullscreen().catch(err => console.info("Could not exit fullscreen:", err));
         }
         return true;
     }
 
     /**
-     * Open Help Overlay
-     * @function openHelp
+     * Opens the Help/Information Overlay.
+     * Displays links to external project documentation and IBM Quantum resources.
      */
     function openHelp() {
-        // clear previous qr code
-        $("#qrcode-container").empty();
-        $("#qrcode-container").append(`
-            <a class="help-link" target="_blank" onclick="window.myCloseFullscreen()" href="http://qoffee-maker.org">Qoffee Maker<br/><i>http://qoffee-maker.org</i><span class="arrow">→</span><a/>
-            <a class="help-link" target="_blank" onclick="window.myCloseFullscreen()" href="http://quantum-computing.ibm.com">IBM Quantum<br/><i>http://quantum-computing.ibm.com</i><span class="arrow">→</span><a/>
-            <p style="font-size: 0.8em; margin-top: 15px; text-align: center;"><i>Note: Accessing these links requires an internet connection.</i></p>
-        `)
-        $("#qrcode-container").addClass("active");
+        const qrContainer = $("#qrcode-container"); // Assumes this div is still used/created for overlays
+        qrContainer.empty(); // Clear previous content
+        qrContainer.append(`
+            <div style="padding:20px; text-align:center;">
+                <h3>Qoffee Explorer - Help & Resources</h3>
+                <p><a class="help-link" target="_blank" rel="noopener noreferrer" href="http://qoffee-maker.org">Qoffee Maker Project Page</a></p>
+                <p><a class="help-link" target="_blank" rel="noopener noreferrer" href="https://quantum-computing.ibm.com">IBM Quantum Platform</a></p>
+                <p style="font-size: 0.8em; margin-top: 15px;"><i>Note: Accessing these links requires an internet connection.</i></p>
+                <button onclick="$('#qrcode-container').removeClass('active');" style="margin-top:15px;">Close</button>
+            </div>
+        `);
+        qrContainer.addClass("active"); // Show the overlay
     }
 
     /**
-     * Open an overlay which displays a QR Code
-     * @function openQRCode
-     * @param {string} url URL to encode into a QR Code
-     * @param {string} text Text to show above the QR Code
-     * @param {string} additionalHtml Optional HTML content to append below the QR code and link
+     * Opens an overlay displaying a QR Code for a given URL.
+     * Also displays optional text and additional HTML content.
      */
-    function openQRCode(url, text="", additionalHtml="") {
-        // clear previous qr code
+    function openQRCode(url, text = "", additionalHtml = "") {
         const qrContainer = $("#qrcode-container");
         qrContainer.empty();
-        qrContainer.append('<div id="qrcode"></div>'); // Add div for QRCode object
+        qrContainer.append('<div id="qrcode-img" style="margin:20px auto; width:256px; height:256px;"></div>'); // Div for QRCode.js to target
 
-        // create qrcode
-        new QRCode(document.getElementById("qrcode"), { // QRCode is now correctly capitalized
+        new QRCode(document.getElementById("qrcode-img"), {
             text: url,
             width: 256,
             height: 256,
-            colorDark : "#000000",
-            colorLight : "#ffffff"
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
         });
 
-        if(text) { // Check if text is not empty or undefined
-            qrContainer.prepend('<p class="qrcode-text">'+text+'</p>');
+        if (text) {
+            qrContainer.prepend('<p class="qrcode-text" style="text-align:center; margin:10px;">' + text + '</p>');
         }
-        qrContainer.append('<a class="qrcode-link" href="'+url+'" target="_blank" rel="noopener noreferrer">Open Link</a>');
+        qrContainer.append('<p style="text-align:center; margin-top:10px;"><a class="qrcode-link" href="' + url + '" target="_blank" rel="noopener noreferrer">Open Link</a></p>');
 
         if (additionalHtml) {
-            qrContainer.append(additionalHtml);
+            qrContainer.append('<div style="margin-top:10px; padding:0 20px; text-align:left;">' + additionalHtml + '</div>');
         }
+        qrContainer.append('<button onclick="$(\'#qrcode-container\').removeClass(\'active\');" style="margin:15px auto; display:block;">Close</button>');
         qrContainer.addClass("active");
     }
 
     /**
-     * Export a circuit to IBM Quantum Composer using URL
-     * @function openQRCodeIBMQ
-     * @param {string} circuitQasm QASM Code of the current circuit
+     * Generates a QR code for exporting the current circuit QASM to IBM Quantum Composer.
+     * This feature is for users who might want to take their circuit online.
      */
     function openQRCodeIBMQ(circuitQasm) {
-        // setup data to transfer
-        const dataToCompress = { // Renamed to avoid conflict with global 'data' widget if any confusion
-            title: 'Qoffee Maker - ' +(new Date()).toLocaleString(),
-            description: 'Circuit exported from Qoffee Maker',
+        const dataToCompress = {
+            title: 'Qoffee Explorer Circuit - ' + (new Date()).toLocaleString(),
+            description: 'Circuit exported from Qoffee Explorer (Offline Quantum Combinatorics Tool)',
             qasm: circuitQasm
-        }
-        // encode data and add to URL
+        };
         const quantumComposerComponent = encodeURIComponent(LZString.compressToEncodedURIComponent(JSON.stringify(dataToCompress)));
-        const url = "https://quantum-computing.ibm.com/composer/files/new?initial="+quantumComposerComponent;
+        const url = "https://quantum-computing.ibm.com/composer/files/new?initial=" + quantumComposerComponent;
 
-        // Prepare message for the QR code display
         let messageText = "Scan to open in IBM Quantum Composer.";
-        // TODO: Check actual overall online status if possible. For now, assume it might be offline.
         messageText += "<br><small><i>Note: Accessing IBM Quantum Composer requires an internet connection.</i></small>";
 
-        // Display QASM as text for copying, and a placeholder for where it could go in UI
         const qasmDisplayHtml = `<div style="margin-top: 10px;">
             <p><strong>Raw QASM:</strong></p>
-            <textarea rows="5" style="width: 100%; font-family: monospace; font-size: 0.8em;" readonly>${circuitQasm}</textarea>
-            <p><small>You can copy the QASM above if offline.</small></p>
+            <textarea rows="5" style="width: 100%; font-family: monospace; font-size: 0.8em; box-sizing: border-box;" readonly>${circuitQasm}</textarea>
+            <p><small>You can copy the QASM above.</small></p>
             </div>`;
 
-        console.log("QASM for IBM Quantum Composer:", circuitQasm); // For debugging / manual copy
-
-        // show QR Code
-        openQRCode(url, messageText, qasmDisplayHtml); // Pass additional HTML to display
+        openQRCode(url, messageText, qasmDisplayHtml);
     }
 
-    //
-    // Ipython Extension code
-    //
+    // --- Global Status Bar ---
+    // Provides simple, non-intrusive feedback at the bottom of the page.
 
-    // state variable to avoid double loading
-    let loadFunctionCalled = false;
-    // interval for refreshing auth
-    let intervalAuthRefresh = null;
-    function load_ipython_extension() {
-        // avoid double loading
-        if(loadFunctionCalled) {
-            return;
-        }
-        loadFunctionCalled = true;
-
-        // load CSS file
-        $('<link/>').attr({
-            id: 'app_css',
-            rel: 'stylesheet',
-            type: 'text/css',
-            href: requirejs.toUrl('./app.css')
-        }).appendTo('head');
-
-        // add button to toolbar to start app mode
-        jupyter.toolbar.add_buttons_group([
-            jupyter.actions.register({
-                icon: 'fa-rocket',
-                help: 'Activate App Mode',
-                handler : activateApp
-            }, 'app-activate', 'simple-app')
-        ]);
-
-        // add keyboard shortcut to leave app mode
-        jupyter.actions.register({
-            icon: 'fa-times',
-            help: 'Deactivate App Mode',
-            handler : deactivateApp
-        }, 'app-deactivate', 'simple-app');
-        jupyter.keyboard_manager.command_shortcuts.add_shortcut('esc', 'simple-app:app-deactivate');
-
-        // publish methods by putting them onto window
-        window.requestDrink = requestDrink
-        window.openQRCodeIBMQ = openQRCodeIBMQ
-        window.openQRCode = openQRCode
-        window.openHelp = openHelp
-        window.myCloseFullscreen = closeFullscreen
-        window.refreshAuth = refreshAuth
-        window.toggleGates = toggleGates
-        window.activateCoffeeMachine = activateCoffeeMachine
-
-        // set interval to refresh auth token
-        clearInterval(intervalAuthRefresh)
-        intervalAuthRefresh = setInterval(() => {
-            refreshAuth();
-        }, 40*60*1000)  // every 40min
-
-        // add a button to UI which restarts the app
-        $("body").append('<div id="restart-button-container" class="emergency-button-container"><button type="button" id="restart-button">Restart</button></div>')
-        $(document).on("click", "#restart-button", restart);
-
-        // add a button to UI which refreshs auth manually
-        $("body").append('<div id="refreshauth-button-container" class="emergency-button-container"><button type="button" id="refreshauth-button">Refresh Auth</button></div>')
-        $(document).on("click", "#refreshauth-button", refreshAuth);
-
-        // add a button to UI to go fullscreen
-        $("body").append('<div id="fullscreen-button-container" class="emergency-button-container"><button type="button" id="fullscreen-button">Fullscreen</button></div>')
-        $(document).on("click", "#fullscreen-button", goFullscreen);
-
-        /*
-            Add QR Code Container
-        */
-        // add container to render QRCode
-        $('body').append('<div id="qrcode-container"></div>');
-        // add listener to close on click
-        $("#qrcode-container").on("click", "*", event => {
-            $("#qrcode-container").removeClass("active");
-        })
-        $("#qrcode-container").on("click", event => {
-            $("#qrcode-container").removeClass("active");
-        });
-
-        // Add a global status bar
-        $('body').append('<div id="qoffee-global-status-bar" style="position: fixed; bottom: 0; left: 0; width: 100%; background-color: #333; color: white; padding: 5px 10px; font-size: 0.9em; z-index: 10000; text-align: center; display: none;">Qoffee Status</div>');
-        // Initial online status check for the bar
-        updateOnlineStatus();
-        // Start polling for queue status
-        startQueueStatusPolling();
-    }
-
-    // Helper function to update the global status bar
+    /**
+     * Updates the global status bar message and appearance.
+     * @param {string} message - The message to display.
+     * @param {'info'|'warning'|'error'} type - Type of message for color coding.
+     * @param {number} duration - How long to display (ms). 0 for persistent until next update.
+     */
     function updateGlobalStatus(message, type = 'info', duration = 0) {
         const statusBar = $('#qoffee-global-status-bar');
         if (!statusBar.length) return;
 
         statusBar.text(message).show();
-        statusBar.css('background-color', type === 'error' ? '#c00' : type === 'warning' ? '#f0ad4e' : '#337ab7'); // Simple color coding
+        let bgColor = '#337ab7'; // Default info blue
+        if (type === 'error') bgColor = '#c00'; // Red
+        if (type === 'warning') bgColor = '#f0ad4e'; // Orange
+        statusBar.css('background-color', bgColor);
 
         if (duration > 0) {
             setTimeout(() => {
-                statusBar.hide();
+                statusBar.fadeOut();
             }, duration);
         }
-        // If duration is 0, message stays until changed or hidden explicitly
     }
-    // Expose to window if needed by other parts or for debugging, otherwise keep local.
-    window.updateQoffeeGlobalStatus = updateGlobalStatus; // Exposing for potential external calls or debug
-
-    // Basic online/offline detection for the global status bar
-    function updateOnlineStatus() {
-        if (navigator.onLine) {
-            updateGlobalStatus("Network: Online", 'info', 4000);
-        } else {
-            updateGlobalStatus("Network: Offline", 'warning'); // Keep offline message visible
-        }
-    }
-
-    window.addEventListener('online', updateOnlineStatus);
-    window.addEventListener('offline', updateOnlineStatus);
-    // Initial check
-    // updateOnlineStatus(); // Called now in load_ipython_extension
-
-    // --- Global Status Bar & Queue Polling ---
-    // The qoffee-global-status-bar provides users with feedback on network status,
-    // queued commands, and other important application states.
-    // It's updated by direct calls to updateGlobalStatus() or via the queue status poller.
-
-    let queueStatusPollerInterval = null; // Interval ID for the poller
-    const POLLING_INTERVAL = 30000; // Poll for queue status every 30 seconds
+    window.updateQoffeeGlobalStatus = updateGlobalStatus; // Expose for potential external calls or debug
 
     /**
-     * Fetches the Home Connect queue status from the backend API
-     * and updates the global status bar accordingly.
-     * Only polls if navigator.onLine is true.
+     * Updates the global status bar based on browser's navigator.onLine status.
+     * Note: navigator.onLine is not always a reliable indicator of actual internet connectivity.
      */
-    function fetchAndUpdateQueueStatus() {
-        if (!navigator.onLine) {
-            // If browser thinks it's offline, no point in polling our backend for this.
-            // The generic 'Network: Offline' message from updateOnlineStatus() should cover it.
-            // Or, we could set a specific "Queue status: Offline / Unknown"
-            // updateGlobalStatus("Queue status: Offline / Unknown", 'warning');
+    function updateOnlineStatusDisplay() {
+        if (navigator.onLine) {
+            updateGlobalStatus("Network: Browser Online", 'info', 4000);
+        } else {
+            updateGlobalStatus("Network: Browser Offline", 'warning'); // Keep offline message visible
+        }
+    }
+
+    // --- IPython Extension Setup ---
+    let loadFunctionCalled = false;
+
+    function load_ipython_extension() {
+        if (loadFunctionCalled) {
             return;
         }
+        loadFunctionCalled = true;
 
-        fetch("/api/hc/queue-status", {
-            method: 'get',
-            credentials: 'same-origin',
-            headers: { 'X-XSRFToken': document.cookie.replace("_xsrf=", "") }
-        })
-        .then(response => {
-            if (response.ok) {
-                return response.json();
+        // Load main application CSS
+        $('<link/>').attr({
+            id: 'qoffee_app_css', // Changed ID for clarity
+            rel: 'stylesheet',
+            type: 'text/css',
+            href: requirejs.toUrl('./app.css') // Assuming app.css is in the same dir
+        }).appendTo('head');
+
+        // App Mode Activation Button (Toolbar)
+        if (jupyter && jupyter.toolbar) {
+            jupyter.toolbar.add_buttons_group([
+                jupyter.actions.register({
+                    icon: 'fa-rocket', // FontAwesome icon
+                    help: 'Activate Qoffee Explorer App Mode',
+                    handler: activateApp
+                }, 'qoffee-app-activate', 'qoffee-explorer')
+            ]);
+        }
+
+        // Deactivate App Mode (Keyboard Shortcut: ESC)
+        if (jupyter && jupyter.keyboard_manager) {
+             jupyter.actions.register({
+                icon: 'fa-times', // FontAwesome icon
+                help: 'Deactivate Qoffee Explorer App Mode',
+                handler: deactivateApp
+            }, 'qoffee-app-deactivate', 'qoffee-explorer');
+            jupyter.keyboard_manager.command_shortcuts.add_shortcut('esc', 'qoffee-explorer:qoffee-app-deactivate');
+        }
+
+        // Publish essential methods to window for Python (JsPyWidget) or HTML calls
+        window.openQRCodeIBMQ = openQRCodeIBMQ;
+        window.openQRCode = openQRCode; // General QR code utility
+        window.openHelp = openHelp;
+        window.myCloseFullscreen = closeFullscreen; // Retained if used by existing HTML
+        window.toggleGates = toggleGates; // If gate set toggling is still desired
+        // Removed: window.requestDrink, window.refreshAuth, window.activateCoffeeMachine
+
+        // Emergency Restart Button (useful if UI becomes unresponsive)
+        $("body").append('<div id="qoffee-restart-button-container" style="position:fixed; bottom:30px; right:10px; z-index:20001;"><button type="button" id="qoffee-restart-button" title="Restart Kernel & Run All">Restart App</button></div>');
+        $(document).on("click", "#qoffee-restart-button", restartKernelAndRunAll);
+
+        // Fullscreen Button (optional convenience)
+        $("body").append('<div id="qoffee-fullscreen-button-container" style="position:fixed; bottom:60px; right:10px; z-index:20001;"><button type="button" id="qoffee-fullscreen-button" title="Toggle Fullscreen">Fullscreen</button></div>');
+        $(document).on("click", "#qoffee-fullscreen-button", goFullscreen);
+
+
+        // QR Code overlay container (shared by openQRCode and openHelp)
+        $('body').append('<div id="qrcode-container" style="display:none; position:fixed; top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:19999;color:white;overflow-y:auto;"></div>');
+        $("#qrcode-container").on("click", function(event) { // Close overlay if background is clicked
+            if (event.target === this) {
+                $(this).removeClass("active").hide();
             }
-            // Don't show error for failed poll, just log it, to avoid annoying user.
-            console.error("Failed to fetch queue status:", response.status);
-            return null;
-        })
-        .then(data => {
-            if (data) {
-                let statusMsg = `Network: Online`;
-                if (data.active_queue_length > 0) {
-                    statusMsg += ` | Queued: ${data.active_queue_length}`;
-                }
-                if (data.failed_queue_length > 0) {
-                    statusMsg += ` | Failed: ${data.failed_queue_length}`;
-                    updateGlobalStatus(statusMsg, 'warning'); // Keep visible if there are failed items
-                } else if (data.active_queue_length > 0) {
-                    updateGlobalStatus(statusMsg, 'info'); // Keep visible if items are queued
-                } else {
-                    // If everything is fine, show briefly or not at all,
-                    // or integrate with the 'Network: Online' message from updateOnlineStatus
-                    // For now, let updateOnlineStatus handle the pure "Online" message.
-                    // This function will only make the bar persistent if there's something in queues.
-                }
-            }
-        })
-        .catch(error => {
-            console.error("Error fetching or processing queue status:", error);
-            // updateGlobalStatus("Could not fetch queue status.", 'error', 5000);
         });
-    }
+         // Ensure buttons inside also can close it, e.g., by adding a common class to close buttons
+         // and $(document).on('click', '.close-qrcode-overlay', () => $('#qrcode-container').removeClass('active').hide());
 
-    function startQueueStatusPolling() {
-        if (queueStatusPollerInterval) {
-            clearInterval(queueStatusPollerInterval);
-        }
-        fetchAndUpdateQueueStatus(); // Initial fetch
-        queueStatusPollerInterval = setInterval(fetchAndUpdateQueueStatus, POLLING_INTERVAL);
-        console.log("Queue status polling started.");
-    }
+        // Global Status Bar
+        $('body').append('<div id="qoffee-global-status-bar" style="position: fixed; bottom: 0; left: 0; width: 100%; background-color: #333; color: white; padding: 5px 10px; font-size: 0.9em; z-index: 10000; text-align: center; display: none;">Qoffee Explorer Status</div>');
 
-    function stopQueueStatusPolling() {
-        if (queueStatusPollerInterval) {
-            clearInterval(queueStatusPollerInterval);
-            queueStatusPollerInterval = null;
-            console.log("Queue status polling stopped.");
-        }
-    }
-    // Expose for potential manual start/stop or if other logic needs to control it
-    // window.startQoffeeQueuePolling = startQueueStatusPolling;
-    // window.stopQoffeeQueuePolling = stopQueueStatusPolling;
+        // Initial network status display and event listeners
+        window.addEventListener('online', updateOnlineStatusDisplay);
+        window.addEventListener('offline', updateOnlineStatusDisplay);
+        updateOnlineStatusDisplay(); // Initial check
 
+        console.log("Qoffee Explorer frontend extension loaded.");
+    }
 
     return {
         load_ipython_extension: load_ipython_extension
