@@ -1,17 +1,15 @@
 // uls-platform/src/services/causalReasoningService.ts
 
-// Placeholder for Pyodide types. In a real setup, we'd install and import these.
-// For now, we'll use 'any'.
-// import { PyodideInterface, PyProxy } from 'pyodide';
-declare var loadPyodide: any; // Pyodide's loader function
+import { loadPyodide, PyodideInterface } from "pyodide"; // Changed from global to import
+// We'll still use 'any' for PyProxy for simplicity in this PoC, but PyodideInterface is typed.
 
 interface PyodideOutput {
-  results?: any;
+  results?: any; // Could be more specific if we knew all return types
   error?: string;
 }
 
 export class CausalReasoningService {
-  private pyodide: any | null = null; // PyodideInterface | null = null;
+  private pyodide: PyodideInterface | null = null; // Use the imported type
   private isInitializing: boolean = false;
   private initializationPromise: Promise<void> | null = null;
 
@@ -44,23 +42,81 @@ export class CausalReasoningService {
 
     this.initializationPromise = (async () => {
       try {
-        // Assuming Pyodide is available globally or via an import mechanism
-        // In Electron, Pyodide scripts would be included in the HTML or preloaded.
-        // A specific version and source for Pyodide is important for reproducibility.
-        // Using a CDN URL for now, but local vendoring is better for production.
-        this.pyodide = await loadPyodide({
-           indexURL: "https://cdn.jsdelivr.net/pyodide/v0.25.1/full/"
-        });
-        console.log("CausalReasoningService: Pyodide loaded successfully.");
-        // Essential packages for DoWhy and basic operations
+        // When using `pyodide` npm package, `indexURL` behavior changes.
+        // If Pyodide files are bundled locally (e.g., by a Vite plugin or Webpack plugin
+        // copying them from `node_modules/pyodide/` to a static assets folder),
+        // indexURL should point to that local relative path.
+        // For Electron main process, this path needs to be resolvable.
+        // A common strategy is to copy pyodide files to a known location in the app's packaged resources.
+        // Example: if files are copied to './pyodide-dist/' relative to where this service runs (or an absolute path):
+        // const pyodideBasePath = path.join(app.getAppPath(), 'dist/pyodide-files'); // Or similar
+        // In a proper build system, this path would be determined by where the build tool places these assets.
+        // For this step, we'll assume a placeholder relative path that step 3 will aim to populate.
+        // The key change is that we are NO LONGER using the CDN by default with an npm install workflow.
+
+        // Placeholder: Assume Pyodide files will be in 'node_modules/pyodide/build' or a location
+        // copied by a build step. For Electron main, direct relative paths from __dirname can work if structure is known.
+        // If using `pyodide/pyodide.js` directly from `node_modules` without `indexURL`, it might try to
+        // load sibling files (like .wasm) from that `node_modules/pyodide/build` path.
+        // For robustness and explicitness, especially for Electron's main process,
+        // it's often better to ensure Pyodide files are copied to a known app location and use indexURL.
+        // Let's assume for now that the `pyodide` npm package, when loaded in Node,
+        // can find its own core files if `indexURL` is not provided, or we provide a path later.
+        // The official docs for `pyodide` in Node.js usually imply it finds its files relative
+        // For Electron main process, to ensure Pyodide files are found reliably,
+        // especially in a packaged app, we will use an indexURL pointing to
+        // a local directory where Pyodide's distribution files are expected to be.
+        // This local directory (e.g., 'dist/pyodide_dist') should be populated by the build process
+        // by copying files from 'node_modules/pyodide/build/'.
+
+        // Dynamically determine the path to the local Pyodide distribution.
+        // This requires `path` and potentially `app` from electron if running in main.
+        // For now, this service is agnostic to Electron, so we'd need a way to pass this path in
+        // or have a fixed relative expectation.
+        // For PoC, let's assume a fixed relative path from where the app's resources are.
+        // This would be something like './pyodide_dist/' if the service is run from the app root,
+        // or more complex if run from a subdirectory within 'dist'.
+
+        // For this conceptual step, we'll use a placeholder path.
+        // The actual path resolution would be:
+        // const isDev = !require('electron').app.isPackaged;
+        // const resourcesPath = isDev ? path.join(__dirname, '..', '..', 'node_modules', 'pyodide', 'build') : path.join(process.resourcesPath, 'pyodide_dist');
+        // const pyodideIndexURL = `file://${resourcesPath.replace(/\\/g, '/')}/`;
+        // This logic is complex and better handled by the main Electron setup passing the URL to the service,
+        // or the service being more aware of its environment.
+
+        // For this step, we'll hardcode a relative path that a build system would aim to create.
+        // This simulates the outcome of Step 3 "Local Pyodide Distribution".
+        // IMPORTANT: This path is conceptual. Actual pathing depends on build output.
+        // We are assuming that the build process places Pyodide files in a 'pyodide_files'
+        // directory relative to where the CausalReasoningService.js (compiled) will be run from.
+        // Or, if running from source with `ts-node` for main process, it might be relative to project root.
+
+        // A simple relative path for Pyodide to try and resolve from its own location in node_modules
+        // This is what `loadPyodide()` without indexURL does.
+        // To explicitly test local file loading for a packaged scenario, we'd use a file:// URL.
+        // Let's stick to no indexURL for this step to test default npm package behavior first,
+        // and then step 3 (Local Pyodide Distribution) will be about ensuring files are copied
+        // and THEN we'd add a local file:// indexURL if needed.
+        // The previous step correctly changed to `await loadPyodide();`
+        // This step is about TESTING that initialization.
+
+        console.log("CausalReasoningService: Attempting to load Pyodide from npm package installation (default paths)...");
+        this.pyodide = await loadPyodide();
+
+        console.log("CausalReasoningService: Pyodide core loaded successfully via npm package (default paths).");
+
+        // Package loading will still attempt to use Pyodide's default CDN for packages.
+        // Making packages available locally is a separate, more advanced step.
         const packagesToLoad = ['pandas', 'numpy', 'scipy', 'statsmodels', 'networkx', 'dowhy'];
-        console.log(`CausalReasoningService: Loading core packages: ${packagesToLoad.join(', ')}...`);
+        console.log(`CausalReasoningService: Loading standard packages (defaulting to CDN via micropip): ${packagesToLoad.join(', ')}...`);
         await this.pyodide.loadPackage(packagesToLoad);
-        console.log("CausalReasoningService: Core packages for DoWhy loaded.");
-      } catch (error) {
-        console.error("CausalReasoningService: Pyodide failed to load.", error);
-        this.pyodide = null; // Ensure it's null on failure
-        throw error; // Re-throw to calling function
+        console.log("CausalReasoningService: Standard packages for DoWhy loaded.");
+
+      } catch (error: any) {
+        console.error("CausalReasoningService: Pyodide (from npm package) or its packages failed to load.", error.message || error);
+        this.pyodide = null;
+        throw error;
       } finally {
         this.isInitializing = false;
       }
