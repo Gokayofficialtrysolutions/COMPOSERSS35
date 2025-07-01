@@ -145,6 +145,86 @@ def generate_w_state_n3_library() -> QuantumCircuit:
     qc.append(w3_gate_instance, [0,1,2])
     return qc
 
+def generate_deutsch_jozsa_circuit(num_problem_qubits: int, oracle_type: str = 'balanced_pattern1') -> QuantumCircuit:
+    """
+    Generates a circuit for the Deutsch-Jozsa algorithm.
+
+    Args:
+        num_problem_qubits: The number of qubits for the input register (n).
+                            The total number of qubits in the circuit will be n + 1 (for the auxiliary qubit).
+        oracle_type: Type of oracle to implement.
+                     'constant_zero': f(x) = 0 for all x.
+                     'constant_one': f(x) = 1 for all x.
+                     'balanced_pattern1': A simple balanced oracle (e.g., CNOTs from input to auxiliary).
+                                          For n=1, f(x)=x. For n=2, f(x)=x1 XOR x2.
+                     'balanced_pattern2': Another simple balanced oracle.
+                                          For n=1, f(x)=NOT x. For n=2, f(x)=x1 XOR (NOT x2).
+
+    Returns:
+        A QuantumCircuit object for the Deutsch-Jozsa algorithm.
+    """
+    if num_problem_qubits < 1:
+        raise ValueError("Number of problem qubits (n) must be at least 1.")
+
+    n = num_problem_qubits
+    # Total qubits = n (problem) + 1 (auxiliary)
+    # Classical bits = n (for measuring problem qubits)
+    qc = QuantumCircuit(n + 1, n)
+    qc.name = f"Deutsch-Jozsa N={n} {oracle_type}"
+
+    # Auxiliary qubit is q_n (the last one)
+    aux_qubit = n
+
+    # 1. Initialize auxiliary qubit to |->
+    qc.x(aux_qubit)
+    qc.h(aux_qubit)
+
+    # 2. Apply Hadamard to all problem qubits
+    qc.h(range(n))
+    qc.barrier()
+
+    # 3. Implement the Oracle (U_f)
+    if oracle_type == 'constant_zero':
+        # f(x) = 0. Oracle is Identity (or simply do nothing to aux_qubit based on input).
+        # For clarity, an explicit Identity might be added, but it's often omitted.
+        pass # Identity effectively
+    elif oracle_type == 'constant_one':
+        # f(x) = 1. Oracle flips the auxiliary qubit regardless of input.
+        qc.x(aux_qubit)
+    elif oracle_type == 'balanced_pattern1':
+        # Example: f(x) = x_0 XOR x_1 XOR ... XOR x_{n-1}
+        # Implemented by CNOTs from each problem qubit to the auxiliary qubit.
+        for i in range(n):
+            qc.cx(i, aux_qubit)
+    elif oracle_type == 'balanced_pattern2':
+        # Example: f(0...0) = 0, f(1...1) = 1, others mixed to be balanced.
+        # A simple one for n=1: f(x) = NOT x. Oracle: X(q0) CNOT(q0, aux) X(q0)
+        # A simple one for n=2: f(x0,x1) = x0. Oracle: CNOT(q0, aux)
+        if n == 1: # f(x) = NOT x
+            qc.x(0)
+            qc.cx(0, aux_qubit)
+            qc.x(0)
+        elif n == 2: # f(x0, x1) = x0 (balanced)
+            qc.cx(0, aux_qubit)
+        else: # Fallback for n > 2 to a generic balanced pattern
+             for i in range(n // 2): # Flip based on first half of qubits
+                qc.cx(i, aux_qubit)
+             if n % 2 == 1 : # if n is odd, ensure it's balanced by one more CNOT
+                qc.cx(n-1, aux_qubit)
+
+
+    else:
+        raise ValueError(f"Unknown oracle_type: {oracle_type}")
+
+    qc.barrier()
+    # 4. Apply Hadamard to all problem qubits again
+    qc.h(range(n))
+
+    # 5. Measure problem qubits
+    qc.measure(range(n), range(n))
+
+    return qc
+
 combinatorial_circ_reg = [
     {
         "id": "binomial_n3_p0.5", "name": "Binomial (N=3, p=0.5)", "description": "3 qubits, each with 50% chance of being |1>.",
@@ -215,6 +295,26 @@ combinatorial_circ_reg = [
         "id": "w_state_n3_library", "name": "N=3, k=1 (W-State, Library)",
         "description": "Uses qiskit.circuit.library.WState for (|001>+|010>+|100>)/√3. Decomposable.",
         "generator": generate_w_state_n3_library, "args": {}
+    },
+    {
+        "id": "dj_n1_const0", "name": "Deutsch-Jozsa (n=1, Constant Zero)",
+        "description": "Deutsch-Jozsa with 1 problem qubit. Oracle: f(x)=0. Expect '0'.",
+        "generator": generate_deutsch_jozsa_circuit, "args": {"num_problem_qubits": 1, "oracle_type": "constant_zero"}
+    },
+    {
+        "id": "dj_n1_const1", "name": "Deutsch-Jozsa (n=1, Constant One)",
+        "description": "Deutsch-Jozsa with 1 problem qubit. Oracle: f(x)=1. Expect '0'.",
+        "generator": generate_deutsch_jozsa_circuit, "args": {"num_problem_qubits": 1, "oracle_type": "constant_one"}
+    },
+    {
+        "id": "dj_n1_balanced_pattern1", "name": "Deutsch-Jozsa (n=1, Balanced f(x)=x)",
+        "description": "Deutsch-Jozsa with 1 problem qubit. Oracle: f(x)=x. Expect '1'.",
+        "generator": generate_deutsch_jozsa_circuit, "args": {"num_problem_qubits": 1, "oracle_type": "balanced_pattern1"}
+    },
+    {
+        "id": "dj_n2_balanced_pattern1", "name": "Deutsch-Jozsa (n=2, Balanced f(x0,x1)=x0^x1)",
+        "description": "Deutsch-Jozsa with 2 problem qubits. Oracle: f(x0,x1)=x0 XOR x1. Expect '11'.",
+        "generator": generate_deutsch_jozsa_circuit, "args": {"num_problem_qubits": 2, "oracle_type": "balanced_pattern1"}
     }
 ]
 

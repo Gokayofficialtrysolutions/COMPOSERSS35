@@ -9,16 +9,18 @@ This project has pivoted from its original "Qoffee-Maker" (IoT coffee machine co
 
 ## Core Features
 
-*   **Offline Quantum Simulation:** Uses Qiskit Aer for local simulation of quantum circuits. No internet connection required for core functionality.
-*   **Combinatorial Circuit Generation:**
-    *   Generate circuits for **Binomial Distributions** (parameterized by N qubits & success probability p).
-    *   Explore **Permutations** with pre-defined examples (SWAP, cycles, bit-reversal) and generate circuits for custom user-defined permutations.
-    *   Create **N-choose-k Combination** superposition states (via `qc.initialize` for simulation clarity, and example gate-based W-states).
-*   **Interactive Circuit Composer:** Utilizes `ibm_quantum_widgets.CircuitComposer` to visually build and modify quantum circuits within the Jupyter Notebook.
-*   **Educational Content Display:** (Requires manual UI setup in `qoffee.ipynb`) Designed to show contextual explanations, formulas, and exploration ideas alongside circuits.
-*   **Basic UI Feedback:** A global status bar in the browser provides simple network status.
-*   **(Optional) IBM Quantum Integration:** If an `IBMQ_API_KEY` is provided, users can (when online) export circuits to the IBM Quantum Composer and (conceptually, if UI implemented) compare local simulations with real IBM Quantum hardware execution (with fallback to local noisy simulation if offline/unavailable).
-*   **CLI Tool (`qoffee_cli.py`):** Provides a command-line interface for system health checks.
+*   **Offline Quantum Simulation:** Uses Qiskit Aer for local simulation.
+*   **Circuit Library & Generation:**
+    *   **Combinatorial Circuits:** Binomial distributions, permutations (pre-defined & custom), N-choose-k combinations, W-states.
+    *   **Introductory Quantum Algorithms:** Includes examples like the Deutsch-Jozsa algorithm.
+*   **Interactive Circuit Composer:** Visually build and modify circuits using `ibm_quantum_widgets.CircuitComposer`.
+*   **Dynamic Measurement Visualization:** Adaptive histograms for measurement probabilities.
+*   **State Visualization:** Includes Bloch sphere representations for individual qubit states (`plot_bloch_multivector`).
+*   **Educational Content Display:** Contextual explanations, formulas, and exploration ideas alongside circuits within `chimera.ipynb`.
+*   **Single-Shot Execution:** Simulate single measurement outcomes.
+*   **Basic UI Feedback:** Global status bar and IBMQ execution messages.
+*   **(Optional) IBM Quantum Integration:** Export to IBM Quantum Composer, potential for future hardware comparison.
+*   **CLI Tool (`chimera_cli.py`):** System health checks.
 
 ## Getting Started
 
@@ -34,7 +36,7 @@ This project has pivoted from its original "Qoffee-Maker" (IoT coffee machine co
 1.  **Clone the Repository:**
     ```bash
     git clone <repository_url>
-    cd qoffee-maker
+    cd qoffee-maker # Or your chosen directory name, e.g., CHIMera-Explorer
     ```
 
 2.  **Install Dependencies:**
@@ -49,7 +51,7 @@ This project has pivoted from its original "Qoffee-Maker" (IoT coffee machine co
 3.  **Install Project Packages:**
     Install the local Python packages that provide the backend API and custom widgets:
     ```bash
-    pip install ./qoffeeapi --user
+    pip install ./qoffeeapi --user  # Or ./chimeraapi if fully renamed later
     pip install ./appwidgets --user
     ```
     *Note: Using `--user` installs to your user site-packages. For isolated environments, you might prefer editable installs (`pip install -e ./qoffeeapi`) if you are developing these packages, or ensure your virtual environment is active.*
@@ -58,11 +60,11 @@ This project has pivoted from its original "Qoffee-Maker" (IoT coffee machine co
     ```bash
     jupyter nbextension install --sys-prefix --overwrite --py appwidgets
     jupyter nbextension enable --sys-prefix --py appwidgets
-    jupyter nbextension install --sys-prefix --overwrite --py qoffeefrontend
-    jupyter nbextension enable --sys-prefix --py qoffeefrontend
+    jupyter nbextension install --sys-prefix --overwrite --py qoffeefrontend # Or chimerafrontend if fully renamed
+    jupyter nbextension enable --sys-prefix --py qoffeefrontend # Or chimerafrontend
     # For JupyterLab, you might need to build/install lab extensions separately
     # jupyter labextension develop appwidgets --overwrite
-    # jupyter labextension develop qoffeefrontend --overwrite
+    # jupyter labextension develop qoffeefrontend --overwrite # Or chimerafrontend
     ```
     *Note: `--sys-prefix` installs for the current Python environment. Use `--user` if not in a venv and you want user-wide install, or `--system` for system-wide (usually requires admin).*
 
@@ -73,7 +75,7 @@ This project has pivoted from its original "Qoffee-Maker" (IoT coffee machine co
     ```
     Edit `.env` if you plan to use optional online IBM Quantum features:
     *   `IBMQ_API_KEY`: Your API Key from your [IBM Quantum Account](https://quantum-computing.ibm.com/account). This is only needed if you want to try sending circuits to IBM Quantum hardware/cloud simulators. For fully offline use, this can be left blank.
-    *   `QOFFEE_BASE_URL`: Only needed if you run the CLI tool and your Jupyter server is not at `http://localhost:8887`.
+    *   `CHIMERA_BASE_URL` (formerly `QOFFEE_BASE_URL`): Only needed if you run the CLI tool (`chimera_cli.py`) and your Jupyter server is not at `http://localhost:8887`.
 
 6.  **Run Jupyter Notebook/Lab:**
     ```bash
@@ -81,33 +83,27 @@ This project has pivoted from its original "Qoffee-Maker" (IoT coffee machine co
     # or
     jupyter lab
     ```
-    Open `qoffee.ipynb` from the Jupyter interface.
+    Open `chimera.ipynb` (formerly `qoffee.ipynb`) from the Jupyter interface.
 
-7.  **IMPORTANT: Manual UI Setup in `qoffee.ipynb`:**
-    To enable the full user interface for combinatorial circuit generation, educational content display, and other advanced UI feedback, **you must manually edit several cells within the `qoffee.ipynb` notebook.**
-    Detailed step-by-step instructions are provided in:
-    **[MANUAL_QOFFEE_IPYNB_SETUP.md](MANUAL_QOFFEE_IPYNB_SETUP.md)**
-
-    A condensed version for getting started quickly is available in:
-    **[UI_SETUP_QUICKSTART.md](UI_SETUP_QUICKSTART.md)**
-
-    *This manual setup is necessary due to limitations in programmatically modifying complex notebook structures reliably with current automated tooling.*
+7.  **IMPORTANT: Manual UI Setup in `chimera.ipynb`:**
+    The core functionality of this project, especially the interactive Quantum Combinatorics Explorer, relies on UI elements within the `chimera.ipynb` notebook. While some enhancements are being made programmatically by the AI agent, the initial setup and potentially some future complex UI additions might require manual adjustments to this notebook.
+    Refer to **[MANUAL_QOFFEE_IPYNB_SETUP.md](MANUAL_QOFFEE_IPYNB_SETUP.md)** (note: this filename may be outdated if project-wide rename is fully completed later) for historical context on manual setup. Current development aims to reduce reliance on extensive manual setup by direct notebook modification where possible.
 
 8.  **Activate App Mode:**
-    Once `qoffee.ipynb` is open and you have (ideally) performed the manual UI setup, run all cells. Then, click the rocket icon (🚀) in the Jupyter Notebook toolbar to activate "App Mode" for a cleaner interface.
+    Once `chimera.ipynb` is open and you have run all cells, click the rocket icon (🚀) in the Jupyter Notebook toolbar to activate "App Mode" for a cleaner interface.
 
 ## Project Structure Overview
 
-*   **`qoffee.ipynb`**: The main Jupyter Notebook providing the interactive UI (requires manual setup for full features).
-*   **`qoffeeapi/`**: Python package for the backend Jupyter server extension.
-    *   `qoffeeapi/api_orchestrator.py`: Defines API handlers (e.g., for `/api/health`).
-    *   `qoffeeapi/combinatorial_circuits.py`: Core logic for generating quantum circuits for combinatorial concepts.
-*   **`qoffeefrontend/`**: Jupyter Notebook extension for frontend JavaScript (`app.js`) and CSS.
-*   **`appwidgets/`**: Python package for custom ipywidgets used in `qoffee.ipynb`.
-*   **`qoffee_cli.py`**: Command-line tool for system health checks.
-*   **`MANUAL_QOFFEE_IPYNB_SETUP.md`**: **Essential guide for manual UI setup in the notebook.**
+*   **`chimera.ipynb`** (formerly `qoffee.ipynb`): The main Jupyter Notebook providing the interactive UI.
+*   **`qoffeeapi/`** (to be `chimeraapi/` if full rename occurs): Python package for the backend.
+    *   `api_orchestrator.py`: Defines API handlers (e.g., for `/api/health`).
+    *   `combinatorial_circuits.py`: Core logic for generating quantum circuits.
+*   **`qoffeefrontend/`** (to be `chimerafrontend/` if full rename occurs): Jupyter Notebook extension for frontend JavaScript (`app.js`) and CSS.
+*   **`appwidgets/`**: Python package for custom ipywidgets used in `chimera.ipynb`.
+*   **`chimera_cli.py`** (formerly `qoffee_cli.py`): Command-line tool for system health checks.
+*   **`MANUAL_QOFFEE_IPYNB_SETUP.md`**: Historical guide for manual UI setup in the notebook. Current development by the AI agent modifies `chimera.ipynb` directly.
 *   **`UI_SETUP_QUICKSTART.md`**: Abridged version of the manual setup guide.
-*   **`DEVELOPER_GUIDE.md`**: In-depth technical details about the project architecture, APIs, extending features, and troubleshooting.
+*   **`DEVELOPER_GUIDE.md`**: In-depth technical details.
 
 ## Security Considerations
 
@@ -115,14 +111,14 @@ Please review the following security considerations when using or developing thi
 
 *   **IBMQ API Key (`.env` file):** If you use an `IBMQ_API_KEY`, protect your `.env` file. Do not commit it to public repositories.
 *   **Jupyter Server Security:** Secure your Jupyter server with a token or password, and avoid exposing it publicly without proper security measures. Refer to Jupyter's official security documentation.
-*   **Code Execution from UI (`data-rh-exec` in `qoffee.ipynb`):** The notebook UI allows execution of Python code defined in its templates. Only run notebooks from trusted sources.
+*   **Code Execution from UI (`data-rh-exec` in `chimera.ipynb`):** The notebook UI allows execution of Python code defined in its templates. Only run notebooks from trusted sources.
 *   **Docker Container Security (if used):** Ensure base images are trusted and up-to-date.
 
 (For more details, see the "Security Considerations" section in the [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)).
 
 ## For Developers and Advanced Users
 
-*   **Manual UI Setup Guide:** [MANUAL_QOFFEE_IPYNB_SETUP.md](MANUAL_QOFFEE_IPYNB_SETUP.md)
+*   **Manual UI Setup Guide (Historical):** [MANUAL_QOFFEE_IPYNB_SETUP.md](MANUAL_QOFFEE_IPYNB_SETUP.md) (Note: AI agent now directly modifies `chimera.ipynb`)
 *   **Developer Guide (Technical Details & Architecture):** [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)
 *   **Future Development Roadmap:** [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md)
 
