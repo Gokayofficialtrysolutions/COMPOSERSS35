@@ -122,6 +122,14 @@ Please review the following security considerations when using or developing thi
 *   **Developer Guide (Technical Details & Architecture):** [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)
 *   **Future Development Roadmap:** [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md)
 
+## CHIMera Quantum Operating System (QOS) Initiative
+
+This project is also the incubation ground for the **CHIMera Quantum Operating System (QOS)**, a long-term vision to develop a comprehensive software stack for managing and orchestrating quantum laboratory environments.
+
+*   **Vision:** To create a modular, scalable, and robust QOS that can interface with diverse quantum hardware and simulators, manage complex experimental workflows, and provide a rich environment for quantum algorithm development and execution.
+*   **Core Services (Architectural Blueprints):** The initial architectural designs for key QOS services are being developed. For more details, see the [CHIMera QOS Core Service Architectural Blueprints](./qos_core_services/README.md).
+*   **Current Status:** The QOS initiative is in the early architectural design and planning stages. The `qos_core_services` directory contains the first set of conceptual blueprints.
+
 ## Installation on RasQberry (Legacy Note)
 
 The "Installation on RasQberry" section below refers to a previous version of this project that had different functionalities. It may not be directly applicable to the current "Quantum Combinatorics Explorer" focus.

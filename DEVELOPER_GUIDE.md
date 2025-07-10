@@ -5,6 +5,7 @@ This guide provides technical details, an architectural overview, and guidance f
 ## Table of Contents
 
 1.  [Architectural Overview](#1-architectural-overview)
+    *   [CHIMera QOS Initiative](#chimera-qos-initiative)
 2.  [Backend API (`qoffeeapi`) - Minimal](#2-backend-api-qoffeeapi---minimal)
     *   [Key Modules](#key-modules)
     *   [API Endpoints Summary](#api-endpoints-summary)
@@ -13,9 +14,10 @@ This guide provides technical details, an architectural overview, and guidance f
 5.  [CLI Tool (`qoffee_cli.py`)](#5-cli-tool-qoffee_clipy)
 6.  [Manual UI Setup in `qoffee.ipynb`](#6-manual-ui-setup-in-qoffeeipynb)
 7.  [Conceptual Designs for UI/UX & Educational Content](#7-conceptual-designs-for-uiux--educational-content)
-8.  [Security Considerations (Local Focus)](#8-security-considerations-local-focus)
-9.  [Alternative Frontend Approaches (Long-Term)](#9-alternative-frontend-approaches-long-term)
-10. [Troubleshooting Common Issues](#10-troubleshooting-common-issues)
+8.  [CHIMera QOS Core Service Blueprints (`qos_core_services/`)](#8-chimera-qos-core-service-blueprints-qos_core_services)
+9.  [Security Considerations (Local Focus)](#9-security-considerations-local-focus)
+10. [Alternative Frontend Approaches (Long-Term)](#10-alternative-frontend-approaches-long-term)
+11. [Troubleshooting Common Issues](#11-troubleshooting-common-issues)
 
 ---
 
@@ -48,6 +50,12 @@ The Qoffee Explorer project runs within a Jupyter Notebook environment, serving 
 
 *   **Local Data Storage:**
     *   The `.user/oauth-token.json` file is no longer actively used by the core refocused application, as Home Connect features that used it for token/cache/queue storage are removed. If this file exists from previous versions, it's ignored by the current core logic. Future local settings for the explorer might use a new file or a different mechanism if needed.
+
+### CHIMera QOS Initiative
+Beyond the "Qoffee Explorer" application, this repository also serves as the development and design hub for the **CHIMera Quantum Operating System (QOS)**.
+*   **Vision:** A comprehensive software stack for managing quantum laboratory environments.
+*   **Architectural Blueprints:** Conceptual designs for core QOS services (PTSS, SACS, SHMS, etc.) are being developed. These are currently housed in the `qos_core_services/` directory. See the [README in that directory](./qos_core_services/README.md) for more details on these blueprints.
+*   **Integration Strategy:** While the Qoffee Explorer is a standalone educational tool, the long-term goal for CHIMera QOS involves building out these services. The current Qoffee Explorer codebase *does not* yet integrate these QOS services; they represent a separate, more extensive development track.
 
 ## 2. Backend API (`qoffeeapi`) - Minimal
 
@@ -104,7 +112,20 @@ The project aims for a rich, engaging learning experience. This includes:
 *   Visualizations like histograms and Bloch spheres to aid understanding.
 *   Future plans (see `PROJECT_ROADMAP.md`) include more interactive exercises and advanced visualizations (e.g., Q-Sphere).
 
-## 8. Security Considerations (Local Focus)
+## 8. CHIMera QOS Core Service Blueprints (`qos_core_services/`)
+
+As part of the CHIMera QOS initiative, this directory contains the initial architectural blueprints for the core services.
+
+*   **Location:** `qos_core_services/`
+*   **Contents:**
+    *   `ptss_conceptual.py`: Precision Timing & Synchronization Service.
+    *   `sacs_conceptual.py`: Security & Access Control Service.
+    *   `shms_conceptual.py`: System Health Monitoring Service.
+    *   `README.md`: Provides an overview of these services.
+*   **Purpose:** These files define the high-level responsibilities, conceptual components, Pythonic interfaces, and class outlines for each service. They are **not** implemented code but rather serve as foundational documents for the QOS development.
+*   **Relation to Qoffee Explorer:** Currently, these QOS service blueprints are separate from the Qoffee Explorer application. There is no direct code integration. They represent a distinct and more ambitious development effort.
+
+## 9. Security Considerations (Local Focus)
 
 With the removal of external API integrations like Home Connect, security concerns are simplified but still important:
 
