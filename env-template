@@ -7,7 +7,7 @@
 # For purely offline use with local Qiskit Aer simulators, this can be left blank.
 IBMQ_API_KEY=YOUR_IBMQ_API_KEY_HERE
 
-# Optional: QOFFEE_BASE_URL for the CLI tool
-# Only needed if your Jupyter server for Qoffee Explorer runs on a different
+# Optional: CHIMERA_BASE_URL for the CLI tool (`chimera_cli.py`)
+# Only needed if your Jupyter server for CHIMera Explorer runs on a different
 # host or port than the default http://localhost:8887
-# QOFFEE_BASE_URL=http://localhost:8887
+# CHIMERA_BASE_URL=http://localhost:8887

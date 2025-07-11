@@ -1,5 +1,5 @@
 """
-Loads the Qoffee-Maker server extension.
+Loads the CHIMera Explorer server extension (from the 'qoffeeapi' package).
 
 This extension now primarily provides a system health check endpoint,
 reflecting the project's focus as an offline Quantum Combinatorics Explorer.
@@ -20,4 +20,4 @@ def load_jupyter_server_extension(nb_server_app):
     health_route_pattern = url_path_join(web_app.settings['base_url'], '/api/health')
     web_app.add_handlers(host_pattern, [(health_route_pattern, OrchestratorHealthCheckHandler)])
 
-    nb_server_app.log.info("QoffeeAPI (Offline Quantum Explorer Version) extension loaded with Health Check.")
+    nb_server_app.log.info("CHIMeraAPI (within qoffeeapi package for CHIMera Explorer) extension loaded with Health Check.")

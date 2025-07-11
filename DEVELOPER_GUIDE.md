@@ -1,6 +1,6 @@
-# Qoffee Explorer Developer Guide
+# CHIMera Explorer Developer Guide
 
-This guide provides technical details, an architectural overview, and guidance for developers working on or extending the Qoffee Explorer project, now refocused as an **Offline Quantum Combinatorics Explorer**.
+This guide provides technical details, an architectural overview, and guidance for developers working on or extending the CHIMera Explorer project, now refocused as an **Offline Quantum Combinatorics Explorer**.
 
 ## Table of Contents
 
@@ -23,21 +23,21 @@ This guide provides technical details, an architectural overview, and guidance f
 
 ## 1. Architectural Overview
 
-The Qoffee Explorer project runs within a Jupyter Notebook environment, serving as an interactive platform for quantum circuit simulation and education, primarily focused on offline use.
+The CHIMera Explorer project runs within a Jupyter Notebook environment, serving as an interactive platform for quantum circuit simulation and education, primarily focused on offline use.
 
 *   **`chimera.ipynb` (formerly `qoffee.ipynb`) (The Main Application UI):**
     *   The primary user interface, built with `ipywidgets` and custom `appwidgets` (especially `ReactiveHtmlWidget`).
     *   Python code in notebook cells manages UI state (via a global `data` ipywidget), generates quantum circuits (combinatorial and algorithmic like Deutsch-Jozsa) using Qiskit, and runs local simulations.
     *   Features dynamic measurement probability histograms, generic single-shot result display, and Bloch sphere visualizations.
-    *   **Note on Manual Setup:** While AI-driven development modifies this notebook directly, historical setup context is in [MANUAL_QOFFEE_IPYNB_SETUP.md](MANUAL_QOFFEE_IPYNB_SETUP.md) (filename may be outdated if full project rename completes).
+    *   **Note on Manual Setup:** While AI-driven development modifies this notebook directly, historical setup context is in [MANUAL_CHIMERA_IPYNB_SETUP.md](MANUAL_CHIMERA_IPYNB_SETUP.md).
 
-*   **`qoffeeapi/` (to be `chimeraapi/`) (Backend Python Package):**
-    *   Extends the Jupyter server. Its primary role is providing a system health check API and the core logic for generating quantum circuits, including combinatorial types and introductory algorithms like Deutsch-Jozsa (in `combinatorial_circuits.py`).
+*   **`qoffeeapi/` (Backend Python Package - directory name preserved):**
+    *   Extends the Jupyter server. Its primary role is providing a system health check API and the core logic for generating quantum circuits (for CHIMera Explorer), including combinatorial types and introductory algorithms like Deutsch-Jozsa (in `combinatorial_circuits.py`). Internal branding updated to CHIMera.
     *   Home Connect features are removed.
 
-*   **`qoffeefrontend/` (to be `chimerafrontend/`) (Frontend JavaScript & CSS):**
-    *   A Jupyter Notebook extension bundling `app.js` and `app.css`.
-    *   `app.js` manages "App Mode", QR code generation, help display, and a basic global status bar. Legacy Home Connect JS functions are removed.
+*   **`qoffeefrontend/` (Frontend JavaScript & CSS - directory name preserved):**
+    *   A Jupyter Notebook extension bundling `app.js` and `app.css` for CHIMera Explorer.
+    *   `app.js` manages "App Mode", QR code generation, help display, and a basic global status bar. Legacy Home Connect JS functions are removed. Internal branding updated to CHIMera.
 
 *   **`appwidgets/` (Custom Jupyter Widgets):**
     *   Provides `ReactiveHtmlWidget` and `JsPyWidget`.
@@ -52,10 +52,10 @@ The Qoffee Explorer project runs within a Jupyter Notebook environment, serving 
     *   The `.user/oauth-token.json` file is no longer actively used by the core refocused application, as Home Connect features that used it for token/cache/queue storage are removed. If this file exists from previous versions, it's ignored by the current core logic. Future local settings for the explorer might use a new file or a different mechanism if needed.
 
 ### CHIMera QOS Initiative
-Beyond the "Qoffee Explorer" application, this repository also serves as the development and design hub for the **CHIMera Quantum Operating System (QOS)**.
+Beyond the "CHIMera Explorer" application, this repository also serves as the development and design hub for the **CHIMera Quantum Operating System (QOS)**.
 *   **Vision:** A comprehensive software stack for managing quantum laboratory environments.
 *   **Architectural Blueprints:** Conceptual designs for core QOS services (PTSS, SACS, SHMS, etc.) are being developed. These are currently housed in the `qos_core_services/` directory. See the [README in that directory](./qos_core_services/README.md) for more details on these blueprints.
-*   **Integration Strategy:** While the Qoffee Explorer is a standalone educational tool, the long-term goal for CHIMera QOS involves building out these services. The current Qoffee Explorer codebase *does not* yet integrate these QOS services; they represent a separate, more extensive development track.
+*   **Integration Strategy:** While the CHIMera Explorer is a standalone educational tool, the long-term goal for CHIMera QOS involves building out these services. The current CHIMera Explorer codebase *does not* yet integrate these QOS services; they represent a separate, more extensive development track.
 
 ## 2. Backend API (`qoffeeapi`) - Minimal
 
@@ -76,7 +76,7 @@ With the removal of Home Connect features, the `qoffeeapi` is significantly simp
 
 ## 3. Combinatorial Circuits Engine (`combinatorial_circuits.py`)
 
-Located in `qoffeeapi/qoffeeapi/combinatorial_circuits.py` (path may change if project fully renamed to `chimeraapi`). This is a central piece of the application.
+Located in `qoffeeapi/qoffeeapi/combinatorial_circuits.py` (directory `qoffeeapi` preserved). This is a central piece of the application.
 
 *   **Purpose:** Provides Python functions to generate Qiskit `QuantumCircuit` objects for various combinatorial concepts (Binomial, Permutations, Combinations, W-states) and introductory quantum algorithms like Deutsch-Jozsa.
 *   **Generators:** Includes functions like `generate_binomial_distribution_circuit`, `generate_permutation_circuit_example`, `generate_combination_superposition_circuit`, `generate_custom_permutation_circuit`, `generate_w_state_n2_gates`, `generate_w_state_n3_library`, and `generate_deutsch_jozsa_circuit`.
@@ -86,7 +86,7 @@ Located in `qoffeeapi/qoffeeapi/combinatorial_circuits.py` (path may change if p
     2.  Add new entries to `combinatorial_circ_reg`.
     3.  Update `chimera.ipynb` to include new UI elements (e.g., cards in welcome view for new examples/algorithms, specific input views if parameters are complex) and ensure the `load_combinatorial_circuit` function (or similar logic) populates `data.circuit_info_html` with relevant educational content.
 
-## 4. Frontend JavaScript (`qoffeefrontend/app.js` - path may change)
+## 4. Frontend JavaScript (`qoffeefrontend/app.js` - directory `qoffeefrontend` preserved)
 
 *   **Current Role:** Manages app mode, help/QR code overlays, and a basic global status bar.
 *   Recent changes focused on Python-side UI logic in `chimera.ipynb`; `app.js` remains largely unaffected by these specific enhancements but is crucial for the overall app shell.
@@ -98,7 +98,7 @@ Located in `qoffeeapi/qoffeeapi/combinatorial_circuits.py` (path may change if p
 
 ## 6. UI Implementation in `chimera.ipynb` (formerly `qoffee.ipynb`)
 
-The UI is primarily built and managed within this notebook using `ipywidgets` and `appwidgets`. AI-driven development directly modifies this notebook to implement UI changes and integrate backend functionalities. Historical manual setup steps are documented in `MANUAL_QOFFEE_IPYNB_SETUP.md` but may not reflect the latest state if the AI has made subsequent programmatic changes. Key UI aspects for the Quantum Laboratory now include:
+The UI is primarily built and managed within this notebook using `ipywidgets` and `appwidgets`. AI-driven development directly modifies this notebook to implement UI changes and integrate backend functionalities. Historical manual setup steps are documented in `MANUAL_CHIMERA_IPYNB_SETUP.md` but may not reflect the latest state if the AI has made subsequent programmatic changes. Key UI aspects for the Quantum Laboratory now include:
 *   Dynamic generation of histograms based on circuit qubit count.
 *   Generic display of single-shot measurement results.
 *   Display of educational content (including for algorithms like Deutsch-Jozsa) and IBMQ status messages.
@@ -123,7 +123,7 @@ As part of the CHIMera QOS initiative, this directory contains the initial archi
     *   `shms_conceptual.py`: System Health Monitoring Service.
     *   `README.md`: Provides an overview of these services.
 *   **Purpose:** These files define the high-level responsibilities, conceptual components, Pythonic interfaces, and class outlines for each service. They are **not** implemented code but rather serve as foundational documents for the QOS development.
-*   **Relation to Qoffee Explorer:** Currently, these QOS service blueprints are separate from the Qoffee Explorer application. There is no direct code integration. They represent a distinct and more ambitious development effort.
+*   **Relation to CHIMera Explorer:** Currently, these QOS service blueprints are separate from the CHIMera Explorer application. There is no direct code integration. They represent a distinct and more ambitious development effort.
 
 ## 9. Security Considerations (Local Focus)
 
@@ -135,15 +135,15 @@ With the removal of external API integrations like Home Connect, security concer
 
 (The main `README.md` contains a more general security considerations section.)
 
-## 9. Alternative Frontend Approaches (Long-Term)
+## 10. Alternative Frontend Approaches (Long-Term)
 
 Conceptual exploration of alternatives (dedicated web app, Voila, Panel/Streamlit) has been done. This remains relevant for future strategic decisions if the ipywidget-based notebook UI proves too restrictive for advanced features.
 
-## 10. Troubleshooting Common Issues
+## 11. Troubleshooting Common Issues
 
-*   **Python Import Errors:** Ensure correct virtual environment and `pip install -r requirements.txt`, then local packages (e.g., `qoffeeapi`/`chimeraapi`, `appwidgets`).
+*   **Python Import Errors:** Ensure correct virtual environment and `pip install -r requirements.txt`, then local packages (e.g., `qoffeeapi` - directory and package name preserved, `appwidgets`).
 *   **`chimera.ipynb` (formerly `qoffee.ipynb`) UI Not Updating:** Restart kernel, run all cells, check browser console for JS errors. `ReactiveHtmlWidget` issues often relate to `data_model` or trait updates. Ensure `data.dynamic_hist_html` is being populated correctly by `composer_update_handler`.
-*   **Combinatorial Circuits Not Loading/Generating:** Double-check any manual setup from `MANUAL_QOFFEE_IPYNB_SETUP.md` (if still relevant), or directly test generator functions in `combinatorial_circuits.py`. Ensure `chimera.ipynb` is calling them correctly.
+*   **Combinatorial Circuits Not Loading/Generating:** Double-check any manual setup from `MANUAL_CHIMERA_IPYNB_SETUP.md` (if still relevant), or directly test generator functions in `qoffeeapi/qoffeeapi/combinatorial_circuits.py`. Ensure `chimera.ipynb` is calling them correctly.
 *   **`chimera_cli.py` (formerly `qoffee_cli.py`) Connection Errors:** Ensure Jupyter server is running at the correct URL (check `CHIMERA_BASE_URL`).
 *   **General Debugging:** Use `print()` in Python, `console.log()` in JS, and check Jupyter server logs.
 

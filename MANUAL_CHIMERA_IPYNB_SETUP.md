@@ -1,14 +1,14 @@
-# Manual Setup for Qoffee Explorer Notebook UI
+# Manual Setup for CHIMera Explorer Notebook UI
 
-This guide provides the necessary steps to manually update your `qoffee.ipynb` Jupyter Notebook to enable the user interface for the **Qoffee Explorer (Offline Quantum Combinatorics Tool)**. This includes UI for parameterized input for combinatorial quantum circuits, display of educational content, and IBMQ-related messages.
+This guide provides the necessary steps to manually update your `chimera.ipynb` Jupyter Notebook to enable the user interface for the **CHIMera Explorer (Offline Quantum Combinatorics Tool)**. This includes UI for parameterized input for combinatorial quantum circuits, display of educational content, and IBMQ-related messages.
 
 **Due to current tooling limitations, these changes cannot be reliably applied programmatically by the automated development agent and require your manual intervention.**
 
-Please apply these changes carefully to the appropriate cells within your `qoffee.ipynb` notebook.
+Please apply these changes carefully to the appropriate cells within your `chimera.ipynb` notebook.
 
 ## 1. Add Required Python Imports
 
-In a code cell near the top of `qoffee.ipynb` (typically where you import `ipywidgets`, `appwidgets`, `qiskit`, etc.), ensure the following imports are present:
+In a code cell near the top of `chimera.ipynb` (typically where you import `ipywidgets`, `appwidgets`, `qiskit`, etc.), ensure the following imports are present:
 
 ```python
 # Existing imports ...
@@ -32,7 +32,7 @@ from qoffeeapi.qoffeeapi.combinatorial_circuits import (
 
 ## 2. Add New Traits to the `data` Widget
 
-Locate the code cell where the global `data` ipywidget is defined (e.g., `data = Widget()`) and its traits are added using `data.add_traits(...)`. You need to add new traits to this `data` object for the Quantum Combinatorics Explorer.
+Locate the code cell where the global `data` ipywidget is defined (e.g., `data = Widget()`) and its traits are added using `data.add_traits(...)`. You need to add new traits to this `data` object for the CHIMera Explorer.
 
 **Carefully insert the following lines inside the `data.add_traits(` call.** Ensure correct comma placement.
 
@@ -54,7 +54,7 @@ Locate the code cell where the global `data` ipywidget is defined (e.g., `data =
 ```
 *Removed `network_status_message` and `command_queue_length` as they were HC-specific.*
 
-## 3. Add Python Helper Functions to `qoffee.ipynb`
+## 3. Add Python Helper Functions to `chimera.ipynb`
 
 In a suitable code cell (e.g., where other UI helper functions like `load_starting_point` are defined), add the following Python functions. Ensure global variables like `data`, `composer`, `combinatorial_circ_reg`, and `composer_update_handler` are accessible.
 
@@ -250,7 +250,7 @@ def generate_and_load_custom_combinatorial_circuit():
 
 ## 4. Update `CircuitExecutor.probabilities_ibmq`
 
-Locate this method in `qoffee.ipynb` (it's inside the `CircuitExecutor` class). Ensure it sets `data.ibmq_message` appropriately. This function is now for *optional* online IBMQ execution if the user sets up an API key.
+Locate this method in `chimera.ipynb` (it's inside the `CircuitExecutor` class). Ensure it sets `data.ibmq_message` appropriately. This function is now for *optional* online IBMQ execution if the user sets up an API key.
 
 ```python
    # Inside class CircuitExecutor:
@@ -308,4 +308,4 @@ In a **new code cell**, define this view using `ipywidgets` as detailed in Secti
 1.  **Restart Kernel & Run All Cells.**
 2.  Test all UI interactions for the Quantum Combinatorics Explorer.
 
-This refocused guide aligns with the project's new direction as an offline educational tool.
+This refocused guide aligns with the CHIMera Explorer project's new direction as an offline educational tool.

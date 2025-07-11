@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Qoffee Explorer CLI - A command-line interface to interact with the Qoffee Explorer's API.
+CHIMera Explorer CLI - A command-line interface to interact with the CHIMera Explorer's API.
 (Primarily for system health checks in the offline-focused version).
 """
 import requests
@@ -10,19 +10,19 @@ import os
 from urllib.parse import urljoin
 import time # For potential future use with timestamps
 
-# Default base URL for the Qoffee Explorer Jupyter server
+# Default base URL for the CHIMera Explorer Jupyter server
 DEFAULT_BASE_URL = "http://localhost:8887"
 
 def get_base_url(args_base_url=None):
     """
     Gets base URL in order of precedence:
     1. Command-line argument (--base-url)
-    2. Environment variable QOFFEE_BASE_URL
+    2. Environment variable CHIMERA_BASE_URL
     3. DEFAULT_BASE_URL
     """
-    if args_base_url and args_base_url != DEFAULT_BASE_URL:
+    if args_base_url and args_base_url != DEFAULT_BASE_URL: # User CLI arg takes precedence
         return args_base_url
-    return os.getenv("QOFFEE_BASE_URL", DEFAULT_BASE_URL)
+    return os.getenv("CHIMERA_BASE_URL", DEFAULT_BASE_URL) # CHIMERA
 
 def handle_response(response, args, custom_formatter=None):
     """
@@ -53,7 +53,7 @@ def _format_health_status(response):
     """Custom formatter for health status output."""
     try:
         data = response.json()
-        print("\n--- Qoffee Explorer System Health ---")
+        print("\n--- CHIMera Explorer System Health ---") # CHIMera
         print(f"  Overall Status: {data.get('overall_status', 'UNKNOWN')}")
         print(f"  Timestamp: {data.get('timestamp', 'N/A')}")
 
@@ -95,12 +95,12 @@ def get_health_status(args):
         else:
             handle_response(response, args) # Show default error format for non-ok responses
     except requests.exceptions.RequestException as e:
-        print(f"Error connecting to Qoffee Explorer API: {e}")
+        print(f"Error connecting to CHIMera Explorer API: {e}") # CHIMera
 
 def main():
-    parser = argparse.ArgumentParser(description="Qoffee Explorer Command Line Interface")
-    parser.add_argument('--base-url', default=os.getenv("QOFFEE_BASE_URL", DEFAULT_BASE_URL),
-                        help=f"Base URL of the Qoffee Explorer Jupyter server (default: {DEFAULT_BASE_URL} or QOFFEE_BASE_URL env var)")
+    parser = argparse.ArgumentParser(description="CHIMera Explorer Command Line Interface") # CHIMera
+    parser.add_argument('--base-url', default=os.getenv("CHIMERA_BASE_URL", DEFAULT_BASE_URL), # CHIMera
+                        help=f"Base URL of the CHIMera Explorer Jupyter server (default: {DEFAULT_BASE_URL} or CHIMERA_BASE_URL env var)") # CHIMera
     parser.add_argument('--json', action='store_true', help="Output raw JSON response instead of formatted text.")
 
     subparsers = parser.add_subparsers(title="commands", dest="command", required=True)

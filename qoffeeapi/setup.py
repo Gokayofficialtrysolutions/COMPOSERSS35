@@ -16,10 +16,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 # The name of the project
-name = 'qoffeeapi'
+name = 'qoffeeapi'  # Directory name, kept due to rename tool issues. Branding is CHIMera.
 
 # Get the version
-version_info = (0, 1, 0, 'dev')
+version_info = (0, 1, 0, 'dev') # Version for the CHIMera API components
 version = ".".join(map(str, version_info))
 
 

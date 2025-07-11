@@ -1,21 +1,28 @@
-# Qoffeeapi
+# CHIMera Explorer API (`qoffeeapi` package)
 
-This Python package extends the Jupyter Notebook API to communicate with the HomeConnect API and provide other backend functionalities for the Qoffee-Maker application. The endpoints mentioned below are available on the base URL of the Jupyter Server.
+**Note:** This documentation is being updated. With the project's pivot to the "CHIMera Explorer" (an offline Quantum Combinatorics tool), many of the Home Connect related API endpoints described below are now considered legacy. The primary active endpoint for CHIMera Explorer is `/api/health`. The `qoffeeapi` directory and package name are preserved due to tool limitations during renaming.
 
-For overall project setup, architecture, and manual UI configuration in `qoffee.ipynb`, please refer to the main project [README.md](../README.md) and the [DEVELOPER_GUIDE.md](../DEVELOPER_GUIDE.md).
+This Python package extends the Jupyter Notebook API to provide backend functionalities for the CHIMera Explorer application. The primary active endpoint is `/api/health`. Legacy Home Connect related endpoints are preserved but not central to the current project focus.
+
+For overall project setup, architecture, and manual UI configuration in `chimera.ipynb`, please refer to the main project [README.md](../README.md) and the [DEVELOPER_GUIDE.md](../DEVELOPER_GUIDE.md).
 
 ## Installation
 
-Install the qoffeeapi using
+Install the `qoffeeapi` package (directory and package name preserved) using:
 ```
 pip install ./qoffeeapi --user
 ```
 
-## Usage
+## Usage (CHIMera Explorer Focus)
 
-The package exposes the following endpoints in the Jupyter API. All endpoints prefixed with 🔑 require autentication. For a sample implementation on how to call these endpoints, see [qoffeefrontend/app.js : requestDrink](../qoffeefrontend/app.js). 
+The primary active endpoint for CHIMera Explorer is:
+*   `GET /api/health`: Provides a health check of the CHIMera Explorer system, including status of IBMQ configuration and local Qiskit Aer availability.
 
-### Authentication
+### Legacy Home Connect API Endpoints (Preserved)
+
+The package also exposes the following legacy Home Connect related endpoints. All endpoints prefixed with 🔑 require Home Connect authentication. For a sample implementation on how to call these endpoints, see [qoffeefrontend/app.js](../qoffeefrontend/app.js).
+
+#### Authentication
 
 - `GET /auth` : redirect user to login page of HomeConnect OAuth Service
 - `GET /auth/callback` : used by HomeConnect OAuth Service on successful login. Should not be called by user
@@ -51,10 +58,10 @@ These endpoints help manage the offline command queue for Home Connect operation
 - `🔑 POST /api/hc/delete-failed-command`: Removes a command from the failed queue.
   Example request body: `{"command_index": 0}`
 
-### System Health
+### System Health (Primary endpoint for CHIMera Explorer)
 
-- `GET /api/health`: Provides a health check of the QoffeeMaker system, including status of Home Connect API connectivity, IBMQ configuration, local storage, and command queue summaries. This endpoint does not require authentication.
-  Example response snippet:
+- `GET /api/health`: Provides a health check of the CHIMera Explorer system, including status of IBMQ configuration and local Qiskit Aer availability. This endpoint does not require authentication.
+  Example response snippet (for CHIMera Explorer):
   ```json
   {
     "overall_status": "OK",

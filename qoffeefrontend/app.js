@@ -52,7 +52,7 @@ define([
         jupyter.notebook.get_cells().forEach(cell => {
             const cellContent = cell.get_text();
             if(cellContent.startsWith("### APP_VIEW_IDENTIFIER")) { // Example identifier
-                $(cell.element).addClass("qoffee-app-cell-view");
+                $(cell.element).addClass("chimera-app-cell-view"); // CHIMera
             }
         });
 
@@ -64,7 +64,7 @@ define([
 
         // Optional: Restart kernel and run all (if this is desired app startup behavior)
         // restartKernelAndRunAll();
-        console.log("Qoffee Explorer App Mode Activated.");
+        console.log("CHIMera Explorer App Mode Activated."); // CHIMera
     }
 
     /**
@@ -79,7 +79,7 @@ define([
         // if (document.fullscreenElement) {
         //     document.exitFullscreen();
         // }
-        console.log("Qoffee Explorer App Mode Deactivated.");
+        console.log("CHIMera Explorer App Mode Deactivated."); // CHIMera
     }
 
     /**
@@ -87,14 +87,14 @@ define([
      * This is a powerful action and should be used judiciously.
      */
     function restartKernelAndRunAll() {
-        $("body").prepend('<div id="qoffee-restart-overlay" style="position:fixed; top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);color:white;z-index:20000;display:flex;align-items:center;justify-content:center;"><h1>Reloading Application & Kernel...</h1></div>');
+        $("body").prepend('<div id="chimera-restart-overlay" style="position:fixed; top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);color:white;z-index:20000;display:flex;align-items:center;justify-content:center;"><h1>Reloading Application & Kernel...</h1></div>'); // CHIMera
         jupyter.actions.call("jupyter-notebook:restart-kernel-and-run-all-cells");
 
         // Periodically check for kernel busy state to remove overlay
         let restartCheckInterval = setInterval(() => {
             if (jupyter.notebook && !jupyter.notebook.kernel_busy) {
                 clearInterval(restartCheckInterval);
-                $("#qoffee-restart-overlay").remove();
+                $("#chimera-restart-overlay").remove(); // CHIMera
                 console.log("Kernel restarted and cells run.");
             }
         }, 1000);
@@ -127,8 +127,8 @@ define([
         qrContainer.empty(); // Clear previous content
         qrContainer.append(`
             <div style="padding:20px; text-align:center;">
-                <h3>Qoffee Explorer - Help & Resources</h3>
-                <p><a class="help-link" target="_blank" rel="noopener noreferrer" href="http://qoffee-maker.org">Qoffee Maker Project Page</a></p>
+                <h3>CHIMera Explorer - Help & Resources</h3>
+                <p><a class="help-link" target="_blank" rel="noopener noreferrer" href="http://qoffee-maker.org">CHIMera Explorer Project Page (Link needs update if changed)</a></p>
                 <p><a class="help-link" target="_blank" rel="noopener noreferrer" href="https://quantum-computing.ibm.com">IBM Quantum Platform</a></p>
                 <p style="font-size: 0.8em; margin-top: 15px;"><i>Note: Accessing these links requires an internet connection.</i></p>
                 <button onclick="$('#qrcode-container').removeClass('active');" style="margin-top:15px;">Close</button>
@@ -173,8 +173,8 @@ define([
      */
     function openQRCodeIBMQ(circuitQasm) {
         const dataToCompress = {
-            title: 'Qoffee Explorer Circuit - ' + (new Date()).toLocaleString(),
-            description: 'Circuit exported from Qoffee Explorer (Offline Quantum Combinatorics Tool)',
+            title: 'CHIMera Explorer Circuit - ' + (new Date()).toLocaleString(), // CHIMera
+            description: 'Circuit exported from CHIMera Explorer (Offline Quantum Combinatorics Tool)', // CHIMera
             qasm: circuitQasm
         };
         const quantumComposerComponent = encodeURIComponent(LZString.compressToEncodedURIComponent(JSON.stringify(dataToCompress)));
@@ -202,7 +202,7 @@ define([
      * @param {number} duration - How long to display (ms). 0 for persistent until next update.
      */
     function updateGlobalStatus(message, type = 'info', duration = 0) {
-        const statusBar = $('#qoffee-global-status-bar');
+        const statusBar = $('#chimera-global-status-bar'); // CHIMera
         if (!statusBar.length) return;
 
         statusBar.text(message).show();
@@ -217,7 +217,7 @@ define([
             }, duration);
         }
     }
-    window.updateQoffeeGlobalStatus = updateGlobalStatus; // Expose for potential external calls or debug
+    window.updateCHIMeraGlobalStatus = updateGlobalStatus; // CHIMera - Expose for potential external calls or debug
 
     /**
      * Updates the global status bar based on browser's navigator.onLine status.
@@ -242,7 +242,7 @@ define([
 
         // Load main application CSS
         $('<link/>').attr({
-            id: 'qoffee_app_css', // Changed ID for clarity
+            id: 'chimera_app_css', // CHIMera
             rel: 'stylesheet',
             type: 'text/css',
             href: requirejs.toUrl('./app.css') // Assuming app.css is in the same dir
@@ -253,9 +253,9 @@ define([
             jupyter.toolbar.add_buttons_group([
                 jupyter.actions.register({
                     icon: 'fa-rocket', // FontAwesome icon
-                    help: 'Activate Qoffee Explorer App Mode',
+                    help: 'Activate CHIMera Explorer App Mode', // CHIMera
                     handler: activateApp
-                }, 'qoffee-app-activate', 'qoffee-explorer')
+                }, 'chimera-app-activate', 'chimera-explorer') // CHIMera
             ]);
         }
 
@@ -263,10 +263,10 @@ define([
         if (jupyter && jupyter.keyboard_manager) {
              jupyter.actions.register({
                 icon: 'fa-times', // FontAwesome icon
-                help: 'Deactivate Qoffee Explorer App Mode',
+                help: 'Deactivate CHIMera Explorer App Mode', // CHIMera
                 handler: deactivateApp
-            }, 'qoffee-app-deactivate', 'qoffee-explorer');
-            jupyter.keyboard_manager.command_shortcuts.add_shortcut('esc', 'qoffee-explorer:qoffee-app-deactivate');
+            }, 'chimera-app-deactivate', 'chimera-explorer'); // CHIMera
+            jupyter.keyboard_manager.command_shortcuts.add_shortcut('esc', 'chimera-explorer:chimera-app-deactivate'); // CHIMera
         }
 
         // Publish essential methods to window for Python (JsPyWidget) or HTML calls
@@ -278,15 +278,16 @@ define([
         // Removed: window.requestDrink, window.refreshAuth, window.activateCoffeeMachine
 
         // Emergency Restart Button (useful if UI becomes unresponsive)
-        $("body").append('<div id="qoffee-restart-button-container" style="position:fixed; bottom:30px; right:10px; z-index:20001;"><button type="button" id="qoffee-restart-button" title="Restart Kernel & Run All">Restart App</button></div>');
-        $(document).on("click", "#qoffee-restart-button", restartKernelAndRunAll);
+        $("body").append('<div id="chimera-restart-button-container" style="position:fixed; bottom:30px; right:10px; z-index:20001;"><button type="button" id="chimera-restart-button" title="Restart Kernel & Run All">Restart App</button></div>'); // CHIMera
+        $(document).on("click", "#chimera-restart-button", restartKernelAndRunAll); // CHIMera
 
         // Fullscreen Button (optional convenience)
-        $("body").append('<div id="qoffee-fullscreen-button-container" style="position:fixed; bottom:60px; right:10px; z-index:20001;"><button type="button" id="qoffee-fullscreen-button" title="Toggle Fullscreen">Fullscreen</button></div>');
-        $(document).on("click", "#qoffee-fullscreen-button", goFullscreen);
+        $("body").append('<div id="chimera-fullscreen-button-container" style="position:fixed; bottom:60px; right:10px; z-index:20001;"><button type="button" id="chimera-fullscreen-button" title="Toggle Fullscreen">Fullscreen</button></div>'); // CHIMera
+        $(document).on("click", "#chimera-fullscreen-button", goFullscreen); // CHIMera
 
 
         // QR Code overlay container (shared by openQRCode and openHelp)
+        // ID "qrcode-container" is generic enough, can be kept.
         $('body').append('<div id="qrcode-container" style="display:none; position:fixed; top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:19999;color:white;overflow-y:auto;"></div>');
         $("#qrcode-container").on("click", function(event) { // Close overlay if background is clicked
             if (event.target === this) {
@@ -297,14 +298,14 @@ define([
          // and $(document).on('click', '.close-qrcode-overlay', () => $('#qrcode-container').removeClass('active').hide());
 
         // Global Status Bar
-        $('body').append('<div id="qoffee-global-status-bar" style="position: fixed; bottom: 0; left: 0; width: 100%; background-color: #333; color: white; padding: 5px 10px; font-size: 0.9em; z-index: 10000; text-align: center; display: none;">Qoffee Explorer Status</div>');
+        $('body').append('<div id="chimera-global-status-bar" style="position: fixed; bottom: 0; left: 0; width: 100%; background-color: #333; color: white; padding: 5px 10px; font-size: 0.9em; z-index: 10000; text-align: center; display: none;">CHIMera Explorer Status</div>'); // CHIMera
 
         // Initial network status display and event listeners
         window.addEventListener('online', updateOnlineStatusDisplay);
         window.addEventListener('offline', updateOnlineStatusDisplay);
         updateOnlineStatusDisplay(); // Initial check
 
-        console.log("Qoffee Explorer frontend extension loaded.");
+        console.log("CHIMera Explorer frontend extension loaded."); // CHIMera
     }
 
     return {

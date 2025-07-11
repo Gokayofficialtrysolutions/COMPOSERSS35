@@ -1,5 +1,5 @@
 """
-API handlers for the Qoffee-Maker application.
+API handlers for the CHIMera Explorer application (within the 'qoffeeapi' package).
 Primarily, this will now focus on providing a system health check.
 Other Home Connect related functionalities have been removed due to
 a project pivot to a strictly offline Quantum Combinatorics Explorer.

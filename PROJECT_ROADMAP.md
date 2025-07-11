@@ -1,46 +1,48 @@
-# Qoffee-Maker: Project Roadmap & Handover Guide
+# CHIMera Explorer & QOS Initiative: Project Roadmap & Handover Guide
 
-This document provides a summary of the current Qoffee-Maker project status after the recent autonomous development cycle, outlines the critical next steps for manual UI implementation, and presents a potential roadmap for future development.
+**Note:** This roadmap is being updated to reflect the project's pivot to the "CHIMera Explorer" (a Quantum Combinatorics educational tool) and the long-term "CHIMera QOS" initiative. Sections pertaining to the original "Qoffee-Maker" IoT functionality and its specific UI tasks are now considered legacy and will be substantially revised or removed in a future documentation overhaul. The immediate changes in this version focus on updating names and paths for consistency with the current codebase state.
 
-## 1. Current Project Status (End of Autonomous Development Cycle)
+This document provides a summary of the CHIMera Explorer project status after the recent autonomous development cycle, outlines critical next steps, and presents a potential roadmap for future development.
 
-The Qoffee-Maker project has been significantly enhanced to function as a foundational "Quantum Combinatorics Explorer" with robust backend capabilities and offline support for its original Home Connect features.
+## 1. Current Project Status (End of Autonomous Development Cycle for CHIMera Explorer v1)
 
-**Key Implemented Assets & Features:**
+The CHIMera Explorer project has been significantly enhanced to function as a foundational "Quantum Combinatorics Explorer". The backend capabilities for the original IoT project (Home Connect) are now considered legacy.
 
-*   **Backend (`qoffeeapi/`):**
-    *   **Home Connect Offline Engine:** Full support for data caching, command queuing, automated retries, and a failed-command queue for Home Connect operations. All state persisted in `.user/oauth-token.json`.
-    *   **Management APIs:** Endpoints for Home Connect queue status/management (`/api/hc/*`) and system health (`/api/health`).
-    *   **Combinatorial Circuit Engine (`combinatorial_circuits.py`):** Functions to generate Qiskit circuits for Binomial Distributions, various Permutations (pre-defined patterns and custom lists), N-choose-k Combinations (via `qc.initialize`), and example W-states (N=2 gates, N=3 library). Includes a registry of pre-defined examples.
-    *   **Code Quality:** Reviewed for clarity, comments, and error handling.
+**Key Implemented Assets & Features (for CHIMera Explorer):**
 
-*   **Frontend JavaScript (`qoffeefrontend/app.js`):**
-    *   **Offline Support:** Localized JS libraries (lz-string, qrcode.js).
-    *   **User Feedback:** `alert()` notifications for queued Home Connect commands. Global status bar for basic network status and polled Home Connect queue/failed command counts.
+*   **Backend (`qoffeeapi/` - directory name preserved):**
+    *   **Legacy Home Connect Offline Engine:** (Functionality preserved but considered legacy).
+    *   **Management APIs:** System health (`/api/health`). Legacy Home Connect APIs (`/api/hc/*`) preserved but not central to CHIMera Explorer.
+    *   **Combinatorial Circuit Engine (`qoffeeapi/qoffeeapi/combinatorial_circuits.py`):** Core for CHIMera Explorer. Functions to generate Qiskit circuits for Binomial Distributions, various Permutations, N-choose-k Combinations, and W-states. Includes a registry of pre-defined examples.
+    *   **Code Quality:** Reviewed for clarity, comments, and error handling. Internal branding updated to CHIMera.
+
+*   **Frontend JavaScript (`qoffeefrontend/app.js` - in `qoffeefrontend/` directory, name preserved):**
+    *   **Offline Support:** Localized JS libraries.
+    *   **User Feedback:** Global status bar. Legacy Home Connect feedback mechanisms preserved but not central. Internal branding updated to CHIMera.
     *   **Enhanced IBMQ Export:** UI includes offline notices and QASM display.
 
-*   **CLI Tool (`qoffee_cli.py`):**
-    *   Command-line access for Home Connect queue status/management, machine listing, system health, and resetting offline data. Human-readable and JSON output.
+*   **CLI Tool (`chimera_cli.py`):**
+    *   Command-line access for system health. Legacy Home Connect CLI features preserved but not central.
 
-*   **Comprehensive Documentation:**
+*   **Comprehensive Documentation (being updated for CHIMera Explorer):**
     *   **`README.md` (Root):** Overall project overview, installation, new features, security.
-    *   **`MANUAL_QOFFEE_IPYNB_SETUP.md`:** **Critical guide** for all manual UI changes needed in `qoffee.ipynb`.
+    *   **`MANUAL_CHIMERA_IPYNB_SETUP.md`:** **Critical guide** for all manual UI changes needed in `chimera.ipynb`.
     *   **`UI_SETUP_QUICKSTART.md`:** Condensed checklist for basic manual UI setup.
-    *   **`DEVELOPER_GUIDE.md`:** Technical architecture, API details, backend logic, extending features, troubleshooting, conceptual UI designs (User Stories, Interactive Exercises, Admin Panel), and future frontend strategies.
+    *   **`DEVELOPER_GUIDE.md`:** Technical architecture, API details, backend logic, extending features, troubleshooting.
     *   Sub-project READMEs updated.
 
 **The project is stable on the backend and core JS frontend. The next major advancement depends on UI implementation.**
 
-## 2. Critical Next Step: Manual UI Implementation in `qoffee.ipynb`
+## 2. Critical Next Step: Manual UI Implementation in `chimera.ipynb`
 
-To make the new features fully accessible and user-friendly, the UI within `qoffee.ipynb` must be manually updated.
+To make the new features fully accessible and user-friendly, the UI within `chimera.ipynb` must be manually updated.
 
-**Primary Resource:** **[MANUAL_QOFFEE_IPYNB_SETUP.md](MANUAL_QOFFEE_IPYNB_SETUP.md)**
+**Primary Resource:** **[MANUAL_CHIMERA_IPYNB_SETUP.md](MANUAL_CHIMERA_IPYNB_SETUP.md)**
 
-**Suggested Prioritization for Manual UI Tasks:**
+**Suggested Prioritization for Manual UI Tasks (Note: some of this may now be outdated due to project pivot - to be revised):**
 
 1.  **Core Setup (Essential First Steps):**
-    *   Add all new required Python imports to `qoffee.ipynb`.
+    *   Add all new required Python imports to `chimera.ipynb`.
     *   Add all new specified traits to the global `data` ipywidget.
     *   Add all new Python helper functions (e.g., `load_combinatorial_circuit`, `generate_and_load_custom_combinatorial_circuit`, status update functions) to appropriate code cells.
     *   Update `CircuitExecutor.probabilities_ibmq` to set `data.ibmq_message`.
@@ -72,10 +74,10 @@ To make the new features fully accessible and user-friendly, the UI within `qoff
 
 ## 3. Future Development Roadmap
 
-This roadmap outlines potential future phases to further enhance the "Quantum Combinatorics Explorer."
+This roadmap outlines potential future phases to further enhance the "Quantum Combinatorics Explorer." (Content below is largely legacy and needs revision to align with CHIMera Explorer and QOS vision).
 
-**Phase A: Full Notebook UI Integration & Polish**
-*   **Objective:** Complete all manual UI setups from `MANUAL_QOFFEE_IPYNB_SETUP.md` to a high standard.
+**Phase A: Full Notebook UI Integration & Polish (Legacy Context - Needs Revision)**
+*   **Objective:** Complete all manual UI setups from `MANUAL_CHIMERA_IPYNB_SETUP.md` to a high standard for `chimera.ipynb`.
 *   **Key Features:**
     *   Fully functional parameterized input for all combinatorial circuits.
     *   Seamless display of educational content.
@@ -123,4 +125,4 @@ This roadmap outlines potential future phases to further enhance the "Quantum Co
     *   Revisit pros/cons of Voila, Panel/Streamlit, or a dedicated web application (e.g., Flask/React) based on experience from prior phases.
     *   If a move is decided, plan migration for a subset of features.
 
-This roadmap provides a flexible guide. Priorities can be adjusted based on user feedback and development resources. The immediate focus should be on realizing the already-designed UI in `qoffee.ipynb`.
+This roadmap provides a flexible guide. Priorities can be adjusted based on user feedback and development resources. The immediate focus should be on realizing the already-designed UI in `chimera.ipynb` and then progressing the CHIMera QOS initiative.

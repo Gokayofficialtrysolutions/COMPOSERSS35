@@ -1,8 +1,10 @@
-# Qoffeefrontend
+# CHIMera Explorer Frontend (`qoffeefrontend` directory)
 
-This is a Jupyter Notebook Extension which bundles JavaScript functions (`app.js`) and CSS Code (`app.css`) required for the Qoffee-Maker application's frontend interactivity and appearance within the Jupyter Notebook.
+**Note:** This documentation is being updated. With the project's pivot to the "CHIMera Explorer" (an offline Quantum Combinatorics tool), parts of this frontend's functionality, especially those related to Home Connect, are now considered legacy or less central. The core `app.js` and `app.css` still provide essential UI shell features for `chimera.ipynb`. The `qoffeefrontend` directory name is preserved due to tool limitations during renaming.
 
-For overall project setup, architecture, and manual UI configuration in `qoffee.ipynb`, please refer to the main project [README.md](../README.md) and the [DEVELOPER_GUIDE.md](../DEVELOPER_GUIDE.md).
+This is a Jupyter Notebook Extension which bundles JavaScript functions (`app.js`) and CSS Code (`app.css`) required for the CHIMera Explorer application's frontend interactivity and appearance within the Jupyter Notebook.
+
+For overall project setup, architecture, and manual UI configuration in `chimera.ipynb`, please refer to the main project [README.md](../README.md) and the [DEVELOPER_GUIDE.md](../DEVELOPER_GUIDE.md).
 
 ## App Mode
 
@@ -28,29 +30,24 @@ The frontend provides utilities for displaying QR codes:
 
 A global status bar is added at the bottom of the screen. It provides:
 - Basic browser online/offline network status indication (via `navigator.onLine`).
-- Counts of currently queued Home Connect commands and persistently failed commands (polled from `/api/hc/queue-status`).
-- Temporary messages for actions like commands being queued or successfully sent.
+- (Legacy) Counts of currently queued Home Connect commands and persistently failed commands (polled from `/api/hc/queue-status`). This part is less relevant for the CHIMera Explorer's core offline focus.
+- Temporary messages for actions.
 
-## Coffee Machine Interaction & Offline Support
+## Coffee Machine Interaction & Offline Support (Legacy Features)
 
-JavaScript functions interface with the backend `qoffeeapi` for Home Connect operations. These now support offline capabilities:
+The following JavaScript functions interface with the backend `qoffeeapi` for Home Connect operations. These are preserved from the original project but are considered legacy for the CHIMera Explorer.
 
 ### Refreshing Authorization to HomeConnect API 
 
-- **`window.refreshAuth()`**: Manually refreshes the Home Connect API access token. This requires an online connection. If authentication fails, it redirects to the login page. The button for this is on the bottom right.
+- **`window.refreshAuth()`**: Manually refreshes the Home Connect API access token.
 
 ### Activate Coffee Machine
 
 - **`window.activateCoffeeMachine()`**: Sends a command to turn the coffee machine on.
-    - If online, the command is sent directly.
-    - If offline, the command is queued by the backend. A JavaScript `alert()` and a message in the global status bar will notify the user.
 
 ### Request a drink from the Coffee Machine
 
 - **`window.requestDrink(<programm key>, <map of programm options>)`**: Sends a command to make a drink.
-    - If online, the command is sent directly.
-    - If offline, the command is queued. A JavaScript `alert()` and a message in the global status bar will notify the user.
-    - The Python callback for this function receives a status indicating if the command was 'ok' (live) or 'queued'.
 
 ## Help Display
 

@@ -1,11 +1,11 @@
-# Qoffee Explorer - Offline Quantum Combinatorics Tool
+# CHIMera Explorer - Offline Quantum Combinatorics Tool
 
-<img src="css/QoffeeMug.png" alt="Qoffee Explorer Logo" width="150">
+<img src="css/CHIMeraMug.png" alt="CHIMera Explorer Logo" width="150">
 <!-- TODO: Consider a new logo that is less coffee-specific -->
 
-**Qoffee Explorer is an interactive, offline-first Jupyter Notebook environment for learning and experimenting with quantum circuits that represent combinatorial mathematics concepts. Explore permutations, combinations, binomial distributions, and more, all locally on your machine for up to ~10 qubits.**
+**CHIMera Explorer is an interactive, offline-first Jupyter Notebook environment for learning and experimenting with quantum circuits that represent combinatorial mathematics concepts. Explore permutations, combinations, binomial distributions, and more, all locally on your machine for up to ~10 qubits.**
 
-This project has pivoted from its original "Qoffee-Maker" (IoT coffee machine control) concept to focus entirely on providing an educational tool for quantum computation. Home Connect related features have been removed.
+This project has pivoted from its original project concept (an IoT coffee machine controller) to focus entirely on providing an educational tool for quantum computation. Home Connect related features have been removed.
 
 ## Core Features
 
@@ -36,7 +36,7 @@ This project has pivoted from its original "Qoffee-Maker" (IoT coffee machine co
 1.  **Clone the Repository:**
     ```bash
     git clone <repository_url>
-    cd qoffee-maker # Or your chosen directory name, e.g., CHIMera-Explorer
+    cd <project_directory_name> # e.g., CHIMera-Explorer
     ```
 
 2.  **Install Dependencies:**
@@ -51,7 +51,7 @@ This project has pivoted from its original "Qoffee-Maker" (IoT coffee machine co
 3.  **Install Project Packages:**
     Install the local Python packages that provide the backend API and custom widgets:
     ```bash
-    pip install ./qoffeeapi --user  # Or ./chimeraapi if fully renamed later
+    pip install ./qoffeeapi --user  # Directory 'qoffeeapi' and its internal package name are preserved
     pip install ./appwidgets --user
     ```
     *Note: Using `--user` installs to your user site-packages. For isolated environments, you might prefer editable installs (`pip install -e ./qoffeeapi`) if you are developing these packages, or ensure your virtual environment is active.*
@@ -60,11 +60,11 @@ This project has pivoted from its original "Qoffee-Maker" (IoT coffee machine co
     ```bash
     jupyter nbextension install --sys-prefix --overwrite --py appwidgets
     jupyter nbextension enable --sys-prefix --py appwidgets
-    jupyter nbextension install --sys-prefix --overwrite --py qoffeefrontend # Or chimerafrontend if fully renamed
-    jupyter nbextension enable --sys-prefix --py qoffeefrontend # Or chimerafrontend
+    jupyter nbextension install --sys-prefix --overwrite --py qoffeefrontend # Directory 'qoffeefrontend' is preserved
+    jupyter nbextension enable --sys-prefix --py qoffeefrontend # Directory 'qoffeefrontend' is preserved
     # For JupyterLab, you might need to build/install lab extensions separately
     # jupyter labextension develop appwidgets --overwrite
-    # jupyter labextension develop qoffeefrontend --overwrite # Or chimerafrontend
+    # jupyter labextension develop qoffeefrontend --overwrite # Directory 'qoffeefrontend' is preserved
     ```
     *Note: `--sys-prefix` installs for the current Python environment. Use `--user` if not in a venv and you want user-wide install, or `--system` for system-wide (usually requires admin).*
 
@@ -87,7 +87,7 @@ This project has pivoted from its original "Qoffee-Maker" (IoT coffee machine co
 
 7.  **IMPORTANT: Manual UI Setup in `chimera.ipynb`:**
     The core functionality of this project, especially the interactive Quantum Combinatorics Explorer, relies on UI elements within the `chimera.ipynb` notebook. While some enhancements are being made programmatically by the AI agent, the initial setup and potentially some future complex UI additions might require manual adjustments to this notebook.
-    Refer to **[MANUAL_QOFFEE_IPYNB_SETUP.md](MANUAL_QOFFEE_IPYNB_SETUP.md)** (note: this filename may be outdated if project-wide rename is fully completed later) for historical context on manual setup. Current development aims to reduce reliance on extensive manual setup by direct notebook modification where possible.
+    Refer to **[MANUAL_CHIMERA_IPYNB_SETUP.md](MANUAL_CHIMERA_IPYNB_SETUP.md)** for historical context on manual setup. Current development aims to reduce reliance on extensive manual setup by direct notebook modification where possible.
 
 8.  **Activate App Mode:**
     Once `chimera.ipynb` is open and you have run all cells, click the rocket icon (🚀) in the Jupyter Notebook toolbar to activate "App Mode" for a cleaner interface.
@@ -95,13 +95,13 @@ This project has pivoted from its original "Qoffee-Maker" (IoT coffee machine co
 ## Project Structure Overview
 
 *   **`chimera.ipynb`** (formerly `qoffee.ipynb`): The main Jupyter Notebook providing the interactive UI.
-*   **`qoffeeapi/`** (to be `chimeraapi/` if full rename occurs): Python package for the backend.
+*   **`qoffeeapi/`**: Python package for the backend (directory name preserved due to tool limitations; internal branding is CHIMera).
     *   `api_orchestrator.py`: Defines API handlers (e.g., for `/api/health`).
     *   `combinatorial_circuits.py`: Core logic for generating quantum circuits.
-*   **`qoffeefrontend/`** (to be `chimerafrontend/` if full rename occurs): Jupyter Notebook extension for frontend JavaScript (`app.js`) and CSS.
+*   **`qoffeefrontend/`**: Jupyter Notebook extension for frontend JavaScript (`app.js`) and CSS (directory name preserved).
 *   **`appwidgets/`**: Python package for custom ipywidgets used in `chimera.ipynb`.
 *   **`chimera_cli.py`** (formerly `qoffee_cli.py`): Command-line tool for system health checks.
-*   **`MANUAL_QOFFEE_IPYNB_SETUP.md`**: Historical guide for manual UI setup in the notebook. Current development by the AI agent modifies `chimera.ipynb` directly.
+*   **`MANUAL_CHIMERA_IPYNB_SETUP.md`**: Historical guide for manual UI setup in the notebook. Current development by the AI agent modifies `chimera.ipynb` directly.
 *   **`UI_SETUP_QUICKSTART.md`**: Abridged version of the manual setup guide.
 *   **`DEVELOPER_GUIDE.md`**: In-depth technical details.
 
@@ -118,7 +118,7 @@ Please review the following security considerations when using or developing thi
 
 ## For Developers and Advanced Users
 
-*   **Manual UI Setup Guide (Historical):** [MANUAL_QOFFEE_IPYNB_SETUP.md](MANUAL_QOFFEE_IPYNB_SETUP.md) (Note: AI agent now directly modifies `chimera.ipynb`)
+*   **Manual UI Setup Guide (Historical):** [MANUAL_CHIMERA_IPYNB_SETUP.md](MANUAL_CHIMERA_IPYNB_SETUP.md) (Note: AI agent now directly modifies `chimera.ipynb`)
 *   **Developer Guide (Technical Details & Architecture):** [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)
 *   **Future Development Roadmap:** [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md)
 

@@ -1,5 +1,5 @@
 """
-Utility functions for the qoffeeapi package.
+Utility functions for the CHIMera Explorer backend (within the 'qoffeeapi' package).
 """
 
 def proxy(handler, response):
