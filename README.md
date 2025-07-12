@@ -1,6 +1,19 @@
 # CHIMera Explorer - Offline Quantum Combinatorics Tool
 
-<img src="css/CHIMeraMug.png" alt="CHIMera Explorer Logo" width="150">
+```
+[ ASCII ART PLACEHOLDER: QUANTUM CIRCUIT ]
+  ┌───┐                       ┌─┐
+  ┤ H ├──■────────────────────┤M├─────────
+  ├───┤┌─┴─┐┌───┐      ┌───┐└╥┘┌─┐
+  ┤ H ├┤ X ├┤ Rz(θ) ├───┤ H ├─╫─┤M├──────
+  ├───┤└───┘└┬───┬┘┌───┐├───┤ ║ └╥┘┌─┐
+  ┤ H ├──■───┤ X ├──┤ H ├┤ X ├─╫──╫─┤M├───
+  └───┘┌─┴─┐ └┬─┬┘ └───┘└───┘ ║  ║ └╥┘
+  ─────┤ X ├──┤M├─────────────╫──╫──╫────
+       └───┘ └╥┘             ║  ║  ║
+══════════════╩═══════════════╩══╩══╩════
+```
+<!-- Former image: <img src="css/CHIMeraMug.png" alt="CHIMera Explorer Logo" width="150"> -->
 <!-- TODO: Consider a new logo that is less coffee-specific -->
 
 **CHIMera Explorer is an interactive, offline-first Jupyter Notebook environment for learning and experimenting with quantum circuits that represent combinatorial mathematics concepts. Explore permutations, combinations, binomial distributions, and more, all locally on your machine for up to ~10 qubits.**
